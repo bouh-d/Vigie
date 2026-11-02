@@ -65,14 +65,16 @@ internal static partial class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool GenerateConsoleCtrlEvent(uint ctrlEvent, uint processGroupId);
 
-    [LibraryImport(PowrProf)]
+    // The power request functions live in kernel32, unlike the power scheme
+    // functions below.
+    [LibraryImport(Kernel32, SetLastError = true)]
     public static partial SafePowerRequestHandle PowerCreateRequest(in ReasonContext context);
 
-    [LibraryImport(PowrProf, SetLastError = true)]
+    [LibraryImport(Kernel32, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool PowerSetRequest(SafePowerRequestHandle request, PowerRequestType requestType);
 
-    [LibraryImport(PowrProf, SetLastError = true)]
+    [LibraryImport(Kernel32, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool PowerClearRequest(SafePowerRequestHandle request, PowerRequestType requestType);
 
