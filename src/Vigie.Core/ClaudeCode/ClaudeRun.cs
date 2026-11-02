@@ -3,6 +3,13 @@ using Vigie.Core.Platform;
 
 namespace Vigie.Core.ClaudeCode;
 
+public enum InterruptOutcome
+{
+    AlreadyExited,
+    StoppedCleanly,
+    Killed,
+}
+
 public sealed record ClaudeRunSnapshot(
     int ProcessId,
     ClaudeLaunchMode Mode,
@@ -129,7 +136,7 @@ public sealed class ClaudeRun : IProcessOutputSink, IDisposable
     /// Asks the process to stop with Ctrl+C and kills its whole tree if it is
     /// still running after <paramref name="gracePeriod"/>.
     /// </summary>
-    public async Task InterruptAsync(TimeSpan gracePeriod)
+    public async Task<InterruptOutcome> InterruptAsync(TimeSpan gracePeriod)
     {
         IManagedProcess process = _process ?? throw new InvalidOperationException("The run has not started.");
         lock (_gate)
@@ -139,7 +146,7 @@ public sealed class ClaudeRun : IProcessOutputSink, IDisposable
 
         if (process.HasExited)
         {
-            return;
+            return InterruptOutcome.AlreadyExited;
         }
 
         if (process.TrySendCtrlC())
@@ -148,7 +155,7 @@ public sealed class ClaudeRun : IProcessOutputSink, IDisposable
             try
             {
                 await process.WaitForExitAsync(grace.Token).ConfigureAwait(false);
-                return;
+                return InterruptOutcome.StoppedCleanly;
             }
             catch (OperationCanceledException)
             {
@@ -157,6 +164,7 @@ public sealed class ClaudeRun : IProcessOutputSink, IDisposable
         }
 
         process.KillTree();
+        return InterruptOutcome.Killed;
     }
 
     public void OnOutputLine(string line)
