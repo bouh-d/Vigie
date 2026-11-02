@@ -1,0 +1,2 @@
+{"type":"system","subtype":"init","session_id":"def456"}
+{"type":"result","subtype":"error_max_turns","is_error":true,"num_turns":20,"total_cost_usd":0.5,"duration_ms":123,"permission_denials":[],"errors":["Reached maximum number of turns (20)"]}
