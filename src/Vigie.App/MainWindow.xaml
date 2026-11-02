@@ -204,7 +204,7 @@
             <StackPanel Margin="0,0,0,8" Visibility="{Binding ClaudeAvailable, Converter={StaticResource BoolVis}, ConverterParameter=Invert}">
               <TextBlock Text="{x:Static res:Strings.Claude_Missing}" Style="{StaticResource WarningText}" />
               <TextBlock>
-                <Hyperlink NavigateUri="{x:Static res:Strings.Claude_InstallUrl}" RequestNavigate="OnRequestNavigate">
+                <Hyperlink NavigateUri="{x:Static res:Strings.Claude_InstallUri}" RequestNavigate="OnRequestNavigate">
                   <Run Text="{x:Static res:Strings.Claude_InstallLinkText}" />
                 </Hyperlink>
               </TextBlock>

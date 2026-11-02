@@ -23,6 +23,7 @@ public partial class App : Application
     private TrayIcon? _tray;
     private MainWindow? _window;
     private ActivationListener? _activation;
+    private Exception? _crash;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -126,9 +127,16 @@ public partial class App : Application
     // the watchdog restores once the process is gone.
     private void RestoreOnCrash(Exception? exception)
     {
+        // An exception the dispatcher lets through reaches the domain handler
+        // as well.
+        if (exception is not null && ReferenceEquals(Interlocked.Exchange(ref _crash, exception), exception))
+        {
+            return;
+        }
+
         void StopSession()
         {
-            _services?.Log.Error($"Erreur interne : {exception?.Message}");
+            _services?.Log.Error($"Erreur interne : {exception?.GetBaseException().Message}");
             _viewModel?.ShutDown(StopReason.UnhandledException);
         }
 

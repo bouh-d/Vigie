@@ -175,6 +175,10 @@ public static class Strings
 
     public static string Claude_InstallUrl => Get("Claude_InstallUrl");
 
+    // Hyperlink.NavigateUri takes a Uri, and x:Static hands its value over
+    // without the conversion XAML applies to literal text.
+    public static Uri Claude_InstallUri => new(Claude_InstallUrl);
+
     public static string Warn_Battery => Get("Warn_Battery");
 
     public static string Warn_ModernStandbyBattery => Get("Warn_ModernStandbyBattery");
