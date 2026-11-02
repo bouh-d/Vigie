@@ -99,6 +99,18 @@ public class SessionControllerTests
     }
 
     [Fact]
+    public void AStartCutShortByACrashCountsItsDurationFromTheAttempt()
+    {
+        _clock.Advance(TimeSpan.FromMinutes(30));
+        _power.CreateRequestException = new EntryPointNotFoundException();
+
+        Assert.Throws<EntryPointNotFoundException>(() => Start(Options()));
+        StopResult? result = _controller.Stop(StopReason.UnhandledException);
+
+        Assert.Equal(TimeSpan.Zero, result!.ActualDuration);
+    }
+
+    [Fact]
     public void AFailureWhileApplyingUndoesTheEarlierStepsAndReportsTheCause()
     {
         _power.ThrowOnActivate = true;

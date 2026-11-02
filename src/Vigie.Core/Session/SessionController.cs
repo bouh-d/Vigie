@@ -93,6 +93,7 @@ public sealed class SessionController
         }
 
         State = SessionState.Starting;
+        _startTick = _clock.TickCountMilliseconds;
         _options = options;
         _trackedProcessAlive = trackedProcessAlive;
         _sleeps.Clear();
@@ -165,8 +166,7 @@ public sealed class SessionController
         }
 
         _deadline = Deadline.Starting(_clock, options.EffectiveCeiling);
-        _startTick = _clock.TickCountMilliseconds;
-        _lastDriftCheckTick = _startTick;
+        _lastDriftCheckTick = _clock.TickCountMilliseconds;
         _trackedExitTick = null;
         _sleepDetector.Reset();
 

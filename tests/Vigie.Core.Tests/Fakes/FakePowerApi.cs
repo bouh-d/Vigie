@@ -17,6 +17,9 @@ public sealed class FakePowerApi : IPowerApi
 
     public bool FailCreateRequest { get; set; }
 
+    /// <summary>An unexpected failure, which the controller lets through.</summary>
+    public Exception? CreateRequestException { get; set; }
+
     public bool RequestUsesFallback { get; set; }
 
     public TimeSpan TimeSinceLastInput { get; set; } = TimeSpan.FromHours(1);
@@ -44,6 +47,11 @@ public sealed class FakePowerApi : IPowerApi
 
     public IPowerRequest CreateSystemRequest(string reason, bool keepDisplayOn)
     {
+        if (CreateRequestException is not null)
+        {
+            throw CreateRequestException;
+        }
+
         if (FailCreateRequest)
         {
             throw new PowerApiException("PowerCreateRequest", 1);
