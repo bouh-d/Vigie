@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Threading;
+using Vigie.Core.Logging;
 using Vigie.Core.Power;
+using Vigie.Core.Session;
 
 namespace Vigie.App;
 
@@ -51,7 +53,7 @@ public static class Program
         }
 
         using var services = new AppServices();
-        Watchdog.WaitAndRestore(ownerPid, ownerStart, services.Processes, services.Leftover);
+        Journal(services, Watchdog.WaitAndRestore(ownerPid, ownerStart, services.Processes, services.Leftover));
         return 0;
     }
 
@@ -59,7 +61,27 @@ public static class Program
     {
         using var services = new AppServices();
         LeftoverResult result = force ? services.Leftover.RestoreNow() : services.Leftover.RestoreIfOrphaned();
+        Journal(services, result);
         return result.Status == LeftoverStatus.Unreadable ? 2 : 0;
+    }
+
+    // These modes have no window, so what they did goes to the log file.
+    private static void Journal(AppServices services, LeftoverResult? result)
+    {
+        switch (result?.Status)
+        {
+            case LeftoverStatus.Restored:
+                services.Log.Warning(SessionNarration.LeftoverRestored());
+                foreach (string line in SessionNarration.Restored(result.Report!))
+                {
+                    services.Log.Info(line);
+                }
+
+                break;
+            case LeftoverStatus.Unreadable:
+                services.Log.Error(SessionNarration.JournalUnreadable());
+                break;
+        }
     }
 
     private static void SignalExistingInstance()

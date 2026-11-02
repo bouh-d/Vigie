@@ -17,6 +17,9 @@ public sealed class FakeFileSystem : IFileSystem
     /// the rename, then clears itself.</summary>
     public Action? CrashDuringAtomicWrite { get; set; }
 
+    /// <summary>When set, every append fails as a full disk would.</summary>
+    public bool FailAppends { get; set; }
+
     public void Write(string path, string contents) => _files[path] = Utf8.GetBytes(contents);
 
     public void WriteBytes(string path, byte[] contents) => _files[path] = contents;
@@ -61,6 +64,11 @@ public sealed class FakeFileSystem : IFileSystem
 
     public void AppendAllText(string path, string contents)
     {
+        if (FailAppends)
+        {
+            throw new IOException("There is not enough space on the disk.");
+        }
+
         byte[] appended = Utf8.GetBytes(contents);
         _files[path] = _files.TryGetValue(path, out byte[]? existing) ? [.. existing, .. appended] : appended;
     }

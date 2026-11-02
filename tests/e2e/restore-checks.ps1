@@ -154,6 +154,10 @@ function Start-Session {
     Wait-Until { Test-Applied } 15 'the lid action to be set to Do nothing'
     Wait-Until { Test-Path $journalPath } 5 'the restore journal'
     Wait-Until { $null -ne (Get-Watchdog) } 10 'the watchdog process'
+    # A watchdog that cannot find its session exits at once, leaving the
+    # session without crash protection.
+    Start-Sleep -Seconds 3
+    if ($null -eq (Get-Watchdog)) { throw 'The watchdog exited while the session was running.' }
     if (-not (Get-ItemProperty -Path $runOnceKey -Name VigieRestore -ErrorAction SilentlyContinue)) {
         throw 'The RunOnce value was not created at the start of the session.'
     }
@@ -185,6 +189,24 @@ function Write-Diagnostics {
         Write-Host '::group::Vigie log'
         Get-Content $log | ForEach-Object { Write-Host $_ }
         Write-Host '::endgroup::'
+    }
+
+    Write-Host '::group::Vigie processes'
+    Get-VigieProcesses | ForEach-Object { Write-Host "$($_.ProcessId) started $($_.CreationDate): $($_.CommandLine)" }
+    Write-Host '::endgroup::'
+
+    if (Test-Path $journalPath) {
+        Write-Host '::group::Restore journal'
+        Get-Content $journalPath | ForEach-Object { Write-Host $_ }
+        Write-Host '::endgroup::'
+    }
+
+    try {
+        $lid = Get-LidAction
+        Write-Host "Lid action now $($lid.Ac)/$($lid.Dc), originally $($script:original.Ac)/$($script:original.Dc)."
+    }
+    catch {
+        Write-Host "The lid action could not be read: $_"
     }
 
     # A crash that ends the process before Vigie can log it is still recorded

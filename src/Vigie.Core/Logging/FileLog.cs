@@ -6,7 +6,9 @@ namespace Vigie.Core.Logging;
 /// <summary>
 /// Appends journal lines to a file and keeps the file from growing without
 /// bound: once it passes the size limit it is rotated, and a fixed number of
-/// older files are kept.
+/// older files are kept. Writing is best effort: a line that cannot be written,
+/// because the disk is full or another program holds the file, is dropped
+/// rather than interrupting the session or a restore.
 /// </summary>
 public sealed class FileLog : ILog
 {
@@ -36,8 +38,15 @@ public sealed class FileLog : ILog
 
         lock (_gate)
         {
-            RotateIfNeeded();
-            _fileSystem.AppendAllText(_path, line);
+            try
+            {
+                RotateIfNeeded();
+                _fileSystem.AppendAllText(_path, line);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                // The line still reaches the window's journal.
+            }
         }
     }
 
