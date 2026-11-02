@@ -7,8 +7,9 @@ and through the sign-in command. It drives the window through UI Automation,
 reads the values with powercfg, and saves a screenshot of a running session.
 
 The machine needs an interactive desktop and administrator rights for
-powercfg /requests; GitHub's Windows runners have both. It changes the lid
-action of the active power scheme, so run it on a disposable machine.
+powercfg /requests and /attributes; GitHub's Windows runners have both. It
+changes the lid action of the active power scheme and makes that setting
+visible, so run it on a disposable machine.
 #>
 [CmdletBinding()]
 param(
@@ -25,8 +26,16 @@ $journalPath = Join-Path $env:LOCALAPPDATA 'Vigie\restore.json'
 $runOnceKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce'
 $Automation = [System.Windows.Automation.AutomationElement]
 
+function Invoke-Powercfg {
+    $output = & powercfg @args
+    if ($LASTEXITCODE -ne 0) {
+        throw "powercfg $($args -join ' ') failed with $LASTEXITCODE`: $($output -join ' ')"
+    }
+    $output
+}
+
 function Get-LidAction {
-    $text = (powercfg /q SCHEME_CURRENT SUB_BUTTONS LIDACTION) -join "`n"
+    $text = (Invoke-Powercfg /q SCHEME_CURRENT SUB_BUTTONS LIDACTION) -join "`n"
     $ac = [regex]::Match($text, 'Current AC Power Setting Index:\s*0x([0-9a-fA-F]+)')
     $dc = [regex]::Match($text, 'Current DC Power Setting Index:\s*0x([0-9a-fA-F]+)')
     if (-not ($ac.Success -and $dc.Success)) {
@@ -39,9 +48,9 @@ function Get-LidAction {
 }
 
 function Set-LidAction([int] $Value) {
-    powercfg /setacvalueindex SCHEME_CURRENT SUB_BUTTONS LIDACTION $Value
-    powercfg /setdcvalueindex SCHEME_CURRENT SUB_BUTTONS LIDACTION $Value
-    powercfg /setactive SCHEME_CURRENT
+    Invoke-Powercfg /setacvalueindex SCHEME_CURRENT SUB_BUTTONS LIDACTION $Value | Out-Null
+    Invoke-Powercfg /setdcvalueindex SCHEME_CURRENT SUB_BUTTONS LIDACTION $Value | Out-Null
+    Invoke-Powercfg /setactive SCHEME_CURRENT | Out-Null
 }
 
 function Test-Applied {
@@ -64,7 +73,7 @@ function Wait-Until([scriptblock] $Condition, [int] $TimeoutSeconds, [string] $W
 }
 
 function Test-RequestHeld {
-    $text = (powercfg /requests) -join "`n"
+    $text = (Invoke-Powercfg /requests) -join "`n"
     $system = [regex]::Match($text, '(?s)SYSTEM:(.*?)AWAYMODE:').Groups[1].Value
     $system -match 'Vigie\.exe'
 }
@@ -165,6 +174,10 @@ New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
 
 try {
     Stop-AllVigie
+
+    # A machine without a lid, such as a CI runner, hides the setting from
+    # powercfg /q. Showing it leaves its value unchanged.
+    Invoke-Powercfg /attributes SUB_BUTTONS LIDACTION '-ATTRIB_HIDE' | Out-Null
 
     # A known starting point the session has to change and give back.
     Set-LidAction 1

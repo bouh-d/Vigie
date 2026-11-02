@@ -50,6 +50,13 @@ jobs:
           dotnet publish src/Vigie.App -c Release -r win-x64 --self-contained
           -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
 
+      # The runner's default 1024x768 screen cuts the window off in the
+      # screenshot. Not every runner image has the cmdlet.
+      - name: Use a larger screen
+        continue-on-error: true
+        shell: powershell
+        run: Set-DisplayResolution -Width 1920 -Height 1080 -Force
+
       - name: Restore checks
         shell: powershell
         run: ./tests/e2e/restore-checks.ps1 -Executable publish/Vigie.exe -OutputDirectory restore-checks
