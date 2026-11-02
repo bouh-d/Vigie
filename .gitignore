@@ -31,10 +31,9 @@ desktop.ini
 # Local run data (matches the application's own storage location on dev machines)
 runs/
 
-# Assistant and scratch files that must never reach the public history
+# Local tool configuration and working notes
 CLAUDE.md
 AGENTS.md
 .claude/
 .cursor/
 SPEC.md
-Prompt.md
