@@ -109,19 +109,11 @@ public sealed class Win32PowerApi : IPowerApi
         return PowerStatus.FromRaw(status.AcLineStatus, status.BatteryLifePercent, status.SystemStatusFlag);
     }
 
-    public void LockWorkstation()
-    {
-        if (!NativeMethods.LockWorkStation())
-        {
-            throw new Win32Exception(Marshal.GetLastPInvokeError());
-        }
-    }
+    public bool TryLockWorkstation() => NativeMethods.LockWorkStation();
 
     public bool TrySuspend()
-    {
-        EnableShutdownPrivilege();
-        return NativeMethods.SetSuspendState(hibernate: false, forceCritical: false, disableWakeEvent: false);
-    }
+        => TryEnableShutdownPrivilege()
+            && NativeMethods.SetSuspendState(hibernate: false, forceCritical: false, disableWakeEvent: false);
 
     public TimeSpan GetTimeSinceLastInput()
     {
@@ -135,21 +127,23 @@ public sealed class Win32PowerApi : IPowerApi
         return TimeSpan.FromMilliseconds(elapsed);
     }
 
-    private static void EnableShutdownPrivilege()
+    // SetSuspendState needs the shutdown privilege, which a standard user's
+    // token holds but does not enable by default.
+    private static bool TryEnableShutdownPrivilege()
     {
         if (!NativeMethods.OpenProcessToken(
                 NativeMethods.GetCurrentProcess(),
                 NativeConstants.TokenAdjustPrivileges | NativeConstants.TokenQuery,
                 out SafeKernelHandle token))
         {
-            throw new Win32Exception(Marshal.GetLastPInvokeError());
+            return false;
         }
 
         using (token)
         {
             if (!NativeMethods.LookupPrivilegeValue(null, NativeConstants.SeShutdownName, out Luid luid))
             {
-                throw new Win32Exception(Marshal.GetLastPInvokeError());
+                return false;
             }
 
             var privileges = new TokenPrivileges
@@ -159,31 +153,29 @@ public sealed class Win32PowerApi : IPowerApi
                 Attributes = NativeConstants.SePrivilegeEnabled,
             };
 
-            if (!NativeMethods.AdjustTokenPrivileges(token, disableAllPrivileges: false, privileges, 0, nint.Zero, nint.Zero))
-            {
-                throw new Win32Exception(Marshal.GetLastPInvokeError());
-            }
+            return NativeMethods.AdjustTokenPrivileges(token, disableAllPrivileges: false, privileges, 0, nint.Zero, nint.Zero);
         }
     }
 
     private sealed class Win32PowerRequest : IPowerRequest
     {
         private readonly string _reason;
-        private readonly bool _keepDisplayOn;
         private SafePowerRequestHandle? _handle;
         private bool _disposed;
 
-        private Win32PowerRequest(string reason, bool keepDisplayOn)
+        private Win32PowerRequest(string reason, bool displayRequired)
         {
             _reason = reason;
-            _keepDisplayOn = keepDisplayOn;
+            DisplayRequired = displayRequired;
         }
 
         public bool UsesFallback => _handle is null;
 
-        public static Win32PowerRequest Create(string reason, bool keepDisplayOn)
+        public bool DisplayRequired { get; }
+
+        public static Win32PowerRequest Create(string reason, bool displayRequired)
         {
-            var request = new Win32PowerRequest(reason, keepDisplayOn);
+            var request = new Win32PowerRequest(reason, displayRequired);
             request.Assert();
             return request;
         }
@@ -192,13 +184,21 @@ public sealed class Win32PowerApi : IPowerApi
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
 
-            if (_handle is { IsInvalid: false } handle)
+            // Recreated rather than set again: after a user-initiated sleep the
+            // old request may no longer count, and a fresh one always does.
+            Release();
+            Assert();
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
             {
-                Apply(handle);
                 return;
             }
 
-            Assert();
+            _disposed = true;
+            Release();
         }
 
         private void Assert()
@@ -222,7 +222,15 @@ public sealed class Win32PowerApi : IPowerApi
                 }
 
                 _handle = handle;
-                Apply(handle);
+                if (!NativeMethods.PowerSetRequest(handle, PowerRequestType.SystemRequired))
+                {
+                    throw new Win32Exception(Marshal.GetLastPInvokeError());
+                }
+
+                if (DisplayRequired && !NativeMethods.PowerSetRequest(handle, PowerRequestType.DisplayRequired))
+                {
+                    throw new Win32Exception(Marshal.GetLastPInvokeError());
+                }
             }
             finally
             {
@@ -230,23 +238,12 @@ public sealed class Win32PowerApi : IPowerApi
             }
         }
 
-        private void Apply(SafePowerRequestHandle handle)
-        {
-            if (!NativeMethods.PowerSetRequest(handle, PowerRequestType.SystemRequired))
-            {
-                throw new Win32Exception(Marshal.GetLastPInvokeError());
-            }
-
-            if (_keepDisplayOn)
-            {
-                NativeMethods.PowerSetRequest(handle, PowerRequestType.DisplayRequired);
-            }
-        }
-
+        // The fallback state belongs to the calling thread, which is why the
+        // request is created on the thread that runs the session.
         private void ApplyFallback()
         {
             ExecutionState state = ExecutionState.Continuous | ExecutionState.SystemRequired;
-            if (_keepDisplayOn)
+            if (DisplayRequired)
             {
                 state |= ExecutionState.DisplayRequired;
             }
@@ -254,24 +251,19 @@ public sealed class Win32PowerApi : IPowerApi
             NativeMethods.SetThreadExecutionState(state);
         }
 
-        public void Dispose()
+        private void Release()
         {
-            if (_disposed)
-            {
-                return;
-            }
-
-            _disposed = true;
-
             if (_handle is { IsInvalid: false } handle)
             {
+                // Each set is paired with a clear before the handle is closed,
+                // as the PowerSetRequest documentation describes.
                 NativeMethods.PowerClearRequest(handle, PowerRequestType.SystemRequired);
-                if (_keepDisplayOn)
+                if (DisplayRequired)
                 {
                     NativeMethods.PowerClearRequest(handle, PowerRequestType.DisplayRequired);
                 }
 
-                _handle.Dispose();
+                handle.Dispose();
                 _handle = null;
             }
             else

@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Security;
 using Vigie.Core.Logging;
 using Vigie.Core.Platform;
 using Vigie.Core.Power;
@@ -13,9 +15,11 @@ namespace Vigie.Core.Session;
 /// </summary>
 public sealed class SessionController
 {
+    private const string RequestReason = "Vigie — session d'éveil active";
+    private const int ConsoleDisplayOn = 1;
+
     private static readonly TimeSpan DriftCheckInterval = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan SuspendIdleThreshold = TimeSpan.FromMinutes(2);
-    private const int ConsoleDisplayOn = 1;
 
     private readonly IPowerApi _power;
     private readonly PowerSettingsGuard _guard;
@@ -27,10 +31,10 @@ public sealed class SessionController
     private readonly SleepDetector _sleepDetector;
 
     private SessionOptions? _options;
-    private SessionOwner? _owner;
     private IPowerRequest? _request;
     private Deadline? _deadline;
     private Func<bool>? _trackedProcessAlive;
+    private bool _crashRecoveryArmed;
     private long _startTick;
     private long _lastDriftCheckTick;
     private long? _trackedExitTick;
@@ -81,20 +85,15 @@ public sealed class SessionController
             throw new InvalidOperationException("A session is already running.");
         }
 
-        bool taskMode = options.DurationKind == SessionDurationKind.UntilTask;
-        if (preconditions.Policies.KeepAwakeBlockedFor(preconditions.PowerStatus))
+        StartRefusal refusal = CheckPreconditions(options, preconditions);
+        if (refusal != StartRefusal.None)
         {
-            return new StartResult(SessionState.Inactive, StartRefusal.KeepAwakeBlockedByPolicy, DegradedReason.None, ApplyReport.Empty);
-        }
-
-        if (taskMode && !preconditions.TrackedProcessAlive)
-        {
-            return new StartResult(SessionState.Inactive, StartRefusal.TrackedProcessGone, DegradedReason.None, ApplyReport.Empty);
+            _log.Warning(SessionNarration.StartRefused(refusal));
+            return Refused(refusal);
         }
 
         State = SessionState.Starting;
         _options = options;
-        _owner = new SessionOwner(Guid.NewGuid(), _environment.CurrentProcessId, _environment.CurrentProcessStartTimeUtc);
         _trackedProcessAlive = trackedProcessAlive;
         _sleeps.Clear();
         _log.Info(SessionNarration.Started(options));
@@ -119,14 +118,13 @@ public sealed class SessionController
 
         try
         {
-            _request = _power.CreateSystemRequest("Vigie — session d'éveil active", options.KeepDisplayOn);
+            _request = _power.CreateSystemRequest(RequestReason, options.KeepDisplayOn);
         }
-        catch (Exception exception) when (exception is PowerApiException or System.ComponentModel.Win32Exception)
+        catch (Exception exception) when (exception is PowerApiException or Win32Exception)
         {
-            _log.Error($"Échec de la demande de maintien en éveil : {exception.Message}");
-            State = SessionState.Inactive;
-            _options = null;
-            return new StartResult(SessionState.Inactive, StartRefusal.PowerRequestFailed, DegradedReason.None, ApplyReport.Empty);
+            _log.Error(SessionNarration.StartAborted(exception.Message));
+            ResetToInactive();
+            return Refused(StartRefusal.PowerRequestFailed, exception.Message);
         }
 
         _log.Info(SessionNarration.KeepAwakeActive(_request.UsesFallback, options.KeepDisplayOn));
@@ -136,19 +134,23 @@ public sealed class SessionController
         {
             try
             {
-                applied = _guard.Begin(_owner!, manageLid, manageStandby);
-            }
-            catch (Exception)
-            {
-                RollBack();
-                State = SessionState.Inactive;
-                _options = null;
-                throw;
-            }
+                var owner = new SessionOwner(Guid.NewGuid(), _environment.CurrentProcessId, _environment.CurrentProcessStartTimeUtc);
+                applied = _guard.Begin(owner, manageLid, manageStandby);
+                foreach (string line in SessionNarration.Applied(applied))
+                {
+                    _log.Info(line);
+                }
 
-            foreach (string line in SessionNarration.Applied(applied))
+                ArmCrashRecovery(owner);
+            }
+            catch (Exception exception) when (exception is PowerApiException or IOException or UnauthorizedAccessException or InvalidOperationException)
             {
-                _log.Info(line);
+                // A step failed part-way: undo the earlier steps in reverse
+                // order, then report why.
+                RollBack();
+                _log.Error(SessionNarration.StartAborted(exception.Message));
+                ResetToInactive();
+                return Refused(StartRefusal.SettingsFailed, exception.Message);
             }
 
             if (manageLid && !_guard.LidManaged)
@@ -161,8 +163,6 @@ public sealed class SessionController
         {
             _log.Warning(SessionNarration.Degraded(degraded));
         }
-
-        TryArmCrashRecovery();
 
         _deadline = Deadline.Starting(_clock, options.EffectiveCeiling);
         _startTick = _clock.TickCountMilliseconds;
@@ -207,7 +207,10 @@ public sealed class SessionController
             return;
         }
 
-        CheckDrift();
+        if (_clock.TickCountMilliseconds - _lastDriftCheckTick >= DriftCheckInterval.TotalMilliseconds)
+        {
+            CheckDrift();
+        }
     }
 
     public void OnResume()
@@ -230,13 +233,20 @@ public sealed class SessionController
             return;
         }
 
-        bool shouldLock = closed && _options!.LockOnLidClose;
-        if (shouldLock)
+        if (!closed)
         {
-            _power.LockWorkstation();
+            _log.Info(SessionNarration.LidOpened());
+            return;
         }
 
-        _log.Info(closed ? SessionNarration.LidClosed(shouldLock) : SessionNarration.LidOpened());
+        bool shouldLock = _options!.LockOnLidClose;
+        bool locked = shouldLock && _power.TryLockWorkstation();
+        if (shouldLock && !locked)
+        {
+            _log.Warning(SessionNarration.LockFailed());
+        }
+
+        _log.Info(SessionNarration.LidClosed(locked));
     }
 
     public void OnConsoleDisplayStateChanged(int state) => _consoleDisplayState = state;
@@ -263,9 +273,18 @@ public sealed class SessionController
 
     public void OnPowerSourceChanged(PowerStatus status)
     {
-        if (IsRunning && status.OnBattery)
+        if (!IsRunning || !status.OnBattery)
         {
-            _log.Info(SessionNarration.OnBattery());
+            return;
+        }
+
+        _log.Info(SessionNarration.OnBattery());
+
+        // The battery sleep timeout only matters from now on, so it is checked
+        // straight away rather than at the next periodic check.
+        if (_guard.StandbyManaged)
+        {
+            CheckDrift();
         }
     }
 
@@ -282,38 +301,55 @@ public sealed class SessionController
         _request?.Dispose();
         _request = null;
 
-        RestoreReport restore = _guard.Restore();
-        foreach (string line in SessionNarration.Restored(restore))
-        {
-            _log.Info(line);
-        }
-
-        _crashRecovery.Disarm(keepStartupEntry: !restore.Complete);
+        RestoreReport restore = RestoreSettings();
+        DisarmCrashRecovery(keepStartupEntry: !restore.Complete);
 
         bool suspended = TrySuspendIfRequested(reason);
         TimeSpan actual = TimeSpan.FromMilliseconds(_clock.TickCountMilliseconds - _startTick);
         var result = new StopResult(reason, restore, suspended, actual, _sleeps.Count);
-
         _log.Info(SessionNarration.Stopped(reason, actual, _sleeps.Count));
 
-        State = SessionState.Inactive;
-        Degraded = DegradedReason.None;
-        _deadline = null;
-        _options = null;
-        _owner = null;
-        _trackedProcessAlive = null;
-
+        ResetToInactive();
         Stopped?.Invoke(this, result);
         RaiseStateChanged();
         return result;
     }
 
+    private static StartRefusal CheckPreconditions(SessionOptions options, SessionPreconditions preconditions)
+    {
+        if (preconditions.Journal != JournalStatus.Absent)
+        {
+            return StartRefusal.UnrestoredJournal;
+        }
+
+        if (preconditions.Policies.KeepAwakeBlockedFor(preconditions.PowerStatus))
+        {
+            return StartRefusal.KeepAwakeBlockedByPolicy;
+        }
+
+        return options.DurationKind == SessionDurationKind.UntilTask && !preconditions.TrackedProcessAlive
+            ? StartRefusal.TrackedProcessGone
+            : StartRefusal.None;
+    }
+
+    private static StartResult Refused(StartRefusal refusal, string? detail = null)
+        => new(SessionState.Inactive, refusal, DegradedReason.None, ApplyReport.Empty, detail);
+
     private void ReassertAfterResume()
     {
-        // A user-initiated sleep ends power requests, so they are recreated,
-        // and any setting Windows reset on the way down is written again.
-        _request?.Reassert();
-        _guard.Reapply();
+        // A user-initiated sleep ends power requests, so they are recreated.
+        // The settings are read back too, through the same drift check as the
+        // periodic one, so a value the user changed is not fought over.
+        try
+        {
+            _request?.Reassert();
+        }
+        catch (Exception exception) when (exception is PowerApiException or Win32Exception)
+        {
+            _log.Error(SessionNarration.ReassertFailed(exception.Message));
+        }
+
+        CheckDrift();
     }
 
     private bool CheckTaskFinished()
@@ -350,11 +386,6 @@ public sealed class SessionController
 
     private void CheckDrift()
     {
-        if (_clock.TickCountMilliseconds - _lastDriftCheckTick < DriftCheckInterval.TotalMilliseconds)
-        {
-            return;
-        }
-
         _lastDriftCheckTick = _clock.TickCountMilliseconds;
         DriftReport drift = _guard.CheckForDrift();
         switch (drift.Kind)
@@ -368,6 +399,27 @@ public sealed class SessionController
                 _log.Warning(SessionNarration.Degraded(DegradedReason.ThirdPartyConflict));
                 RaiseStateChanged();
                 break;
+        }
+    }
+
+    private RestoreReport RestoreSettings()
+    {
+        try
+        {
+            RestoreReport restore = _guard.Restore();
+            foreach (string line in SessionNarration.Restored(restore))
+            {
+                _log.Info(line);
+            }
+
+            return restore;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            // The values may be back while the journal could not be updated;
+            // it stays on disk and the next launch finishes the job.
+            _log.Error(SessionNarration.RestoreFailed(exception.Message));
+            return new RestoreReport([], [], Complete: false);
         }
     }
 
@@ -393,26 +445,57 @@ public sealed class SessionController
     private static bool AllowsSuspend(StopReason reason)
         => reason is StopReason.TimerElapsed or StopReason.TaskFinished or StopReason.TaskModeCap or StopReason.BatteryThreshold;
 
-    private void TryArmCrashRecovery()
+    // The watchdog and the RunOnce entry exist only to put journaled values
+    // back, so they are armed only once there is a journal.
+    private void ArmCrashRecovery(SessionOwner owner)
     {
         try
         {
-            _crashRecovery.Arm(_owner!);
+            _crashRecovery.Arm(owner);
+            _crashRecoveryArmed = true;
         }
-        catch (Exception exception) when (exception is IOException or System.Security.SecurityException or UnauthorizedAccessException or InvalidOperationException)
+        catch (Exception exception) when (exception is IOException or SecurityException or UnauthorizedAccessException or InvalidOperationException or Win32Exception)
         {
-            // The watchdog and RunOnce entry are safety nets; without them the
-            // session still restores on its own normal paths.
-            _log.Warning($"Filet de sécurité indisponible : {exception.Message}");
+            // A missing safety net is reported, not fatal: the session still
+            // restores on its normal paths and at the next launch.
+            _log.Warning(SessionNarration.RecoveryUnavailable(exception.Message));
         }
+    }
+
+    private void DisarmCrashRecovery(bool keepStartupEntry)
+    {
+        if (!_crashRecoveryArmed)
+        {
+            return;
+        }
+
+        try
+        {
+            _crashRecovery.Disarm(keepStartupEntry);
+        }
+        catch (Exception exception) when (exception is IOException or SecurityException or UnauthorizedAccessException)
+        {
+            _log.Warning(SessionNarration.RecoveryCleanupFailed(exception.Message));
+        }
+
+        _crashRecoveryArmed = false;
     }
 
     private void RollBack()
     {
         _request?.Dispose();
         _request = null;
-        _guard.Restore();
-        _crashRecovery.Disarm(keepStartupEntry: false);
+        RestoreSettings();
+        DisarmCrashRecovery(keepStartupEntry: false);
+    }
+
+    private void ResetToInactive()
+    {
+        State = SessionState.Inactive;
+        Degraded = DegradedReason.None;
+        _deadline = null;
+        _options = null;
+        _trackedProcessAlive = null;
     }
 
     private void RaiseStateChanged() => StateChanged?.Invoke(this, EventArgs.Empty);

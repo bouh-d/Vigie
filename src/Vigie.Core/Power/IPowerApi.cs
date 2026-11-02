@@ -23,7 +23,7 @@ public interface IPowerApi
 
     PowerStatus GetPowerStatus();
 
-    void LockWorkstation();
+    bool TryLockWorkstation();
 
     bool TrySuspend();
 

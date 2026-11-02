@@ -99,15 +99,56 @@ public class SessionControllerTests
     }
 
     [Fact]
-    public void AFailureWhileApplyingRollsBackTheRequestAndRecovery()
+    public void AFailureWhileApplyingUndoesTheEarlierStepsAndReportsTheCause()
     {
         _power.ThrowOnActivate = true;
 
-        Assert.Throws<PowerApiException>(() => Start(Options()));
+        StartResult result = Start(Options());
 
+        Assert.Equal(StartRefusal.SettingsFailed, result.Refusal);
+        Assert.NotNull(result.Detail);
         Assert.Equal(SessionState.Inactive, _controller.State);
         Assert.True(_power.LastRequest!.Disposed);
-        Assert.Equal(1, _crashRecovery.DisarmCount);
+        Assert.Equal(0, _crashRecovery.ArmCount);
+        Assert.Equal((uint)LidAction.Sleep, _power.Current(Scheme, PowerKnownSettings.Buttons, PowerKnownSettings.LidAction).Ac);
+        Assert.Equal(JournalStatus.Absent, Store().Read().Status);
+    }
+
+    [Theory]
+    [InlineData(JournalStatus.Loaded)]
+    [InlineData(JournalStatus.Unreadable)]
+    public void StartIsRefusedWhileAnEarlierJournalIsStillOnDisk(JournalStatus journal)
+    {
+        StartResult result = _controller.Start(Options(), Preconditions() with { Journal = journal }, trackedProcessAlive: null);
+
+        Assert.Equal(StartRefusal.UnrestoredJournal, result.Refusal);
+        Assert.Null(_power.LastRequest);
+        Assert.Equal((uint)LidAction.Sleep, _power.Current(Scheme, PowerKnownSettings.Buttons, PowerKnownSettings.LidAction).Ac);
+    }
+
+    [Fact]
+    public void AJournalThatAppearsAfterTheChecksIsNeverOverwritten()
+    {
+        const string earlier = "{ \"left\": \"by an earlier session\" }";
+        _fileSystem.Write(@"C:\Vigie\restore.json", earlier);
+
+        StartResult result = Start(Options());
+
+        Assert.Equal(StartRefusal.SettingsFailed, result.Refusal);
+        Assert.Equal(earlier, _fileSystem.Read(@"C:\Vigie\restore.json"));
+        Assert.True(_power.LastRequest!.Disposed);
+    }
+
+    [Fact]
+    public void NoSafetyNetIsArmedWhenNoSettingIsChanged()
+    {
+        StartResult result = Start(Options() with { WorkWithLidClosed = false });
+
+        Assert.Equal(SessionState.Active, result.State);
+        Assert.Equal(0, _crashRecovery.ArmCount);
+
+        _controller.Stop(StopReason.UserStopped);
+        Assert.Equal(0, _crashRecovery.DisarmCount);
     }
 
     [Fact]
@@ -229,6 +270,32 @@ public class SessionControllerTests
         Assert.Equal(SessionState.Degraded, _controller.State);
         Assert.Equal(DegradedReason.ThirdPartyConflict, _controller.Degraded);
     }
+
+    [Fact]
+    public void AFailedLockIsJournaledRatherThanThrown()
+    {
+        Start(Options() with { LockOnLidClose = true });
+        _power.LockSucceeds = false;
+
+        _controller.OnLidChanged(closed: true);
+
+        Assert.True(_controller.IsRunning);
+        Assert.True(_log.Contains("verrouillage"));
+    }
+
+    [Fact]
+    public void UnpluggingChecksTheBatterySleepTimeoutAtOnce()
+    {
+        _controller.Start(Options() with { WorkWithLidClosed = false }, Preconditions() with { ModernStandby = true }, trackedProcessAlive: null);
+
+        // Another program restores a battery sleep timeout mid-session.
+        _power.WriteDcValue(Scheme, PowerKnownSettings.Sleep, PowerKnownSettings.StandbyIdle, 300);
+        _controller.OnPowerSourceChanged(new PowerStatus(PowerSource.Battery, 80, BatterySaverOn: false));
+
+        Assert.Equal(0u, _power.Current(Scheme, PowerKnownSettings.Sleep, PowerKnownSettings.StandbyIdle).Dc);
+    }
+
+    private RestoreJournalStore Store() => new(_fileSystem, @"C:\Vigie\restore.json");
 
     private StartResult Start(SessionOptions options)
         => _controller.Start(options, Preconditions(), trackedProcessAlive: null);

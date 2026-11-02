@@ -103,7 +103,13 @@ public sealed class FakePowerApi : IPowerApi
 
     public PowerStatus GetPowerStatus() => Status;
 
-    public void LockWorkstation() => LockCount++;
+    public bool LockSucceeds { get; set; } = true;
+
+    public bool TryLockWorkstation()
+    {
+        LockCount++;
+        return LockSucceeds;
+    }
 
     public bool TrySuspend()
     {

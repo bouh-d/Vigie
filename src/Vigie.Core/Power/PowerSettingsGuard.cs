@@ -209,59 +209,6 @@ public sealed class PowerSettingsGuard
         return new DriftReport(DriftKind.StoppedManaging, items, readFailures);
     }
 
-    /// <summary>
-    /// Writes the session's values again after a resume, when Windows may have
-    /// reset them. Unlike drift handling this does not count against the
-    /// stop-managing budget: a resume is not another program fighting back.
-    /// </summary>
-    public void Reapply()
-    {
-        if (_journal is null || _stoppedManaging)
-        {
-            return;
-        }
-
-        var schemes = new HashSet<Guid>();
-        foreach (RestoreEntry entry in _journal.Entries)
-        {
-            if (entry.State != RestoreEntryState.Applied)
-            {
-                continue;
-            }
-
-            try
-            {
-                if (entry.AppliedAc is uint ac && ac != entry.OriginalAc)
-                {
-                    _power.WriteAcValue(entry.Scheme, entry.Subgroup, entry.Setting, ac);
-                }
-
-                if (entry.AppliedDc is uint dc && dc != entry.OriginalDc)
-                {
-                    _power.WriteDcValue(entry.Scheme, entry.Subgroup, entry.Setting, dc);
-                }
-
-                schemes.Add(entry.Scheme);
-            }
-            catch (PowerApiException)
-            {
-                // The next drift check reports a setting that could not be written.
-            }
-        }
-
-        try
-        {
-            Guid active = _power.GetActiveSchemeGuid();
-            if (schemes.Contains(active))
-            {
-                _power.ActivateScheme(active);
-            }
-        }
-        catch (PowerApiException)
-        {
-        }
-    }
-
     public RestoreReport Restore()
     {
         if (_journal is null)
