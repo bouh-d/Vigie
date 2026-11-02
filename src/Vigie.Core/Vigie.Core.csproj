@@ -11,4 +11,9 @@
     <PackageReference Include="System.Management" Version="10.0.14" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Lets the tests check the native structure layouts against winnt.h. -->
+    <InternalsVisibleTo Include="Vigie.Core.Tests" />
+  </ItemGroup>
+
 </Project>
