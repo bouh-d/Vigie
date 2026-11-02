@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Pin the Windows platform version to the minimum Vigie supports (Windows 10 1809). -->
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>Vigie.App</RootNamespace>
+    <AssemblyName>Vigie</AssemblyName>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Resources\vigie.ico</ApplicationIcon>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <!-- A hand-written Main in Program.cs handles the command-line restore modes
+         before any window, so App.xaml is compiled as a page, not the entry point. -->
+    <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
+    <!-- DPI awareness is declared in app.manifest for WPF; the Windows Forms
+         analyzer's recommendation to move it does not apply here. -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Windows Forms is used only for the tray icon; drop its global using so
+         the shared type names (Application, Button) resolve to WPF. -->
+    <Using Remove="System.Windows.Forms" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Vigie.Core\Vigie.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\Strings.resx">
+      <LogicalName>Vigie.App.Resources.Strings.resources</LogicalName>
+    </EmbeddedResource>
+    <Resource Include="Resources\vigie.ico" />
+  </ItemGroup>
+
+</Project>

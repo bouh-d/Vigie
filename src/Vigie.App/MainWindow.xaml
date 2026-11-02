@@ -1,0 +1,246 @@
+<Window x:Class="Vigie.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Vigie.App"
+        xmlns:res="clr-namespace:Vigie.App.Resources"
+        xmlns:vm="clr-namespace:Vigie.App.ViewModels"
+        d:DataContext="{d:DesignInstance vm:MainViewModel}"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        mc:Ignorable="d"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        Title="{x:Static res:Strings.AppTitle}"
+        Width="620" Height="820" MinWidth="560" MinHeight="720"
+        WindowStartupLocation="CenterScreen"
+        FontFamily="Segoe UI" FontSize="13"
+        Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+        Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}">
+
+  <Window.Resources>
+    <local:EnumToBooleanConverter x:Key="EnumBool" />
+    <local:BooleanToVisibilityConverter x:Key="BoolVis" />
+    <local:InverseBooleanConverter x:Key="NotBool" />
+
+    <Style x:Key="Dot" TargetType="Ellipse">
+      <Setter Property="Width" Value="10" />
+      <Setter Property="Height" Value="10" />
+      <Setter Property="Margin" Value="0,0,6,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Fill" Value="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" />
+    </Style>
+  </Window.Resources>
+
+  <DockPanel Margin="16">
+
+    <!-- Power header -->
+    <TextBlock DockPanel.Dock="Top" Text="{Binding PowerStatusText}" FontSize="13"
+               Margin="0,0,0,8" AutomationProperties.Name="{Binding PowerStatusText}" />
+    <Separator DockPanel.Dock="Top" Margin="0,0,0,8" />
+
+    <!-- Warning banners -->
+    <StackPanel DockPanel.Dock="Top">
+      <Border Style="{StaticResource WarningBanner}" Visibility="{Binding ShowBatteryWarning, Converter={StaticResource BoolVis}}">
+        <TextBlock Text="{x:Static res:Strings.Warn_Battery}" TextWrapping="Wrap" Foreground="{StaticResource WarningBrush}" />
+      </Border>
+      <Border Style="{StaticResource WarningBanner}" Visibility="{Binding ShowModernStandbyInfo, Converter={StaticResource BoolVis}}">
+        <TextBlock Text="{x:Static res:Strings.Warn_ModernStandbyBattery}" TextWrapping="Wrap" Foreground="{StaticResource WarningBrush}" />
+      </Border>
+      <Border Style="{StaticResource WarningBanner}" Visibility="{Binding ShowRebootWarning, Converter={StaticResource BoolVis}}">
+        <TextBlock Text="{x:Static res:Strings.Warn_RebootPending}" TextWrapping="Wrap" Foreground="{StaticResource WarningBrush}" />
+      </Border>
+      <Border Style="{StaticResource WarningBanner}" Visibility="{Binding ShowDegradedBanner, Converter={StaticResource BoolVis}}">
+        <TextBlock Text="{Binding DegradedText}" TextWrapping="Wrap" Foreground="{StaticResource WarningBrush}" />
+      </Border>
+      <Border Style="{StaticResource WarningBanner}" Visibility="{Binding ShowSleepBanner, Converter={StaticResource BoolVis}}">
+        <TextBlock Text="{Binding SleepBannerText}" TextWrapping="Wrap" Foreground="{StaticResource WarningBrush}" />
+      </Border>
+    </StackPanel>
+
+    <!-- Journal pinned to the bottom -->
+    <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}" BorderThickness="0,1,0,0">
+      <StackPanel>
+        <TextBlock Text="{x:Static res:Strings.Zone_Journal}" Style="{StaticResource SectionHeader}" Margin="0,8,0,6" />
+        <ListBox ItemsSource="{Binding Journal}" Height="120" FontFamily="Consolas" FontSize="12"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 AutomationProperties.Name="{x:Static res:Strings.Zone_Journal}">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <TextBlock TextWrapping="Wrap">
+                <Run Text="{Binding Timestamp, StringFormat=HH\\:mm\\:ss, Mode=OneWay}" Foreground="{StaticResource HintBrush}" />
+                <Run Text="  " /><Run Text="{Binding Message, Mode=OneWay}" />
+              </TextBlock>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+          <Button Content="{x:Static res:Strings.Btn_OpenLogs}" Command="{Binding OpenLogsCommand}" Padding="10,4" Margin="0,0,8,0" />
+          <Button Content="{x:Static res:Strings.Btn_Copy}" Command="{Binding CopyLogCommand}" Padding="10,4" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <!-- Scrollable middle: session + Claude -->
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+
+        <!-- Session zone -->
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <DockPanel Margin="0,0,0,6">
+              <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                <Ellipse>
+                  <Ellipse.Style>
+                    <Style TargetType="Ellipse" BasedOn="{StaticResource Dot}">
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsSessionRunning}" Value="True">
+                          <Setter Property="Fill" Value="{StaticResource AccentBrush}" />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </Ellipse.Style>
+                </Ellipse>
+                <TextBlock Text="{Binding SessionBadgeText}" VerticalAlignment="Center" />
+              </StackPanel>
+              <TextBlock Text="{x:Static res:Strings.Zone_Session}" Style="{StaticResource SectionHeader}" />
+            </DockPanel>
+
+            <TextBlock Text="{Binding SessionStateText}" FontSize="16" Margin="0,0,0,4" />
+            <ProgressBar Height="6" Minimum="0" Maximum="1" Value="{Binding Progress, Mode=OneWay}"
+                         Foreground="{StaticResource AccentBrush}" Margin="0,0,0,10"
+                         AutomationProperties.Name="{Binding SessionStateText}" />
+
+            <Grid IsEnabled="{Binding OptionsEnabled}">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+              </Grid.RowDefinitions>
+              <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,4">
+                <TextBlock Text="{x:Static res:Strings.Duration_Label}" Style="{StaticResource FieldLabel}" Width="70" />
+                <RadioButton GroupName="Duration" Content="{x:Static res:Strings.Duration_15m}" Margin="0,0,10,0"
+                             IsChecked="{Binding SelectedDuration, Converter={StaticResource EnumBool}, ConverterParameter=FifteenMinutes}" />
+                <RadioButton GroupName="Duration" Content="{x:Static res:Strings.Duration_1h}" Margin="0,0,10,0"
+                             IsChecked="{Binding SelectedDuration, Converter={StaticResource EnumBool}, ConverterParameter=OneHour}" />
+                <RadioButton GroupName="Duration" Content="{x:Static res:Strings.Duration_2h}" Margin="0,0,10,0"
+                             IsChecked="{Binding SelectedDuration, Converter={StaticResource EnumBool}, ConverterParameter=TwoHours}" />
+                <RadioButton GroupName="Duration" Content="{x:Static res:Strings.Duration_4h}" Margin="0,0,10,0"
+                             IsChecked="{Binding SelectedDuration, Converter={StaticResource EnumBool}, ConverterParameter=FourHours}" />
+                <RadioButton GroupName="Duration" Content="{x:Static res:Strings.Duration_Custom}" Margin="0,0,6,0"
+                             IsChecked="{Binding SelectedDuration, Converter={StaticResource EnumBool}, ConverterParameter=Custom}" />
+                <TextBox Width="44" Text="{Binding CustomMinutes}" VerticalContentAlignment="Center" />
+                <TextBlock Text="{x:Static res:Strings.Duration_CustomUnit}" Margin="4,0,0,0" VerticalAlignment="Center" />
+              </StackPanel>
+
+              <StackPanel Orientation="Horizontal" Grid.Row="1" Margin="70,0,0,6">
+                <RadioButton GroupName="Duration" Content="{x:Static res:Strings.Duration_UntilTask}" Margin="0,0,8,0"
+                             IsChecked="{Binding SelectedDuration, Converter={StaticResource EnumBool}, ConverterParameter=UntilTask}" />
+                <ComboBox Width="220" ItemsSource="{Binding TaskTargets}" SelectedItem="{Binding SelectedTaskTarget}"
+                          Visibility="{Binding SelectedDuration, Converter={StaticResource EnumBool}, ConverterParameter=UntilTask, Mode=OneWay}"
+                          AutomationProperties.Name="{x:Static res:Strings.Claude_TrackTarget}" />
+              </StackPanel>
+
+              <StackPanel Grid.Row="2">
+                <WrapPanel>
+                  <CheckBox Content="{x:Static res:Strings.Opt_LidClosed}" IsChecked="{Binding WorkWithLidClosed}" Margin="0,0,16,4"
+                            ToolTip="{x:Static res:Strings.Tip_LidClosed}" />
+                  <CheckBox Content="{x:Static res:Strings.Opt_KeepDisplay}" IsChecked="{Binding KeepDisplayOn}" Margin="0,0,16,4"
+                            ToolTip="{x:Static res:Strings.Tip_KeepDisplay}" />
+                </WrapPanel>
+                <CheckBox Content="{x:Static res:Strings.Opt_LockOnLid}" IsChecked="{Binding LockOnLidClose}" Margin="0,0,0,4"
+                          ToolTip="{x:Static res:Strings.Tip_LockOnLid}" />
+                <CheckBox Content="{x:Static res:Strings.Opt_SuspendAtEnd}" IsChecked="{Binding SuspendAtEnd}" Margin="0,0,0,4"
+                          ToolTip="{x:Static res:Strings.Tip_SuspendAtEnd}" />
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                  <CheckBox Content="{x:Static res:Strings.Opt_BatteryStopPrefix}" IsChecked="True" IsEnabled="False" VerticalAlignment="Center" />
+                  <TextBox Width="40" Text="{Binding BatteryThreshold}" Margin="6,0" VerticalContentAlignment="Center"
+                           ToolTip="{x:Static res:Strings.Tip_BatteryStop}" AutomationProperties.Name="{x:Static res:Strings.Opt_BatteryStopSuffix}" />
+                  <TextBlock Text="{x:Static res:Strings.Opt_BatteryStopSuffix}" VerticalAlignment="Center" />
+                </StackPanel>
+                <TextBlock Text="{x:Static res:Strings.Opt_LidClosedNote}" Style="{StaticResource Hint}" Margin="0,4,0,0"
+                           Visibility="{Binding WorkWithLidClosed, Converter={StaticResource BoolVis}}" />
+              </StackPanel>
+            </Grid>
+
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+              <Button Content="{x:Static res:Strings.Btn_Start}" Command="{Binding StartSessionCommand}" IsEnabled="{Binding OptionsEnabled}"
+                      Padding="16,6" Margin="0,0,8,0" />
+              <Button Content="{x:Static res:Strings.Btn_Stop}" Command="{Binding StopSessionCommand}" IsEnabled="{Binding IsSessionRunning}"
+                      Padding="16,6" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- Claude Code zone -->
+        <Border Style="{StaticResource Card}" BorderThickness="0">
+          <StackPanel>
+            <DockPanel Margin="0,0,0,6">
+              <TextBlock Text="{Binding ClaudeBadgeText}" DockPanel.Dock="Right" VerticalAlignment="Center" />
+              <TextBlock Text="{x:Static res:Strings.Zone_Claude}" Style="{StaticResource SectionHeader}" />
+            </DockPanel>
+
+            <TextBlock Text="{Binding ClaudeStateText}" Margin="0,0,0,8" TextWrapping="Wrap" />
+
+            <Grid Margin="0,0,0,4">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="90" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Grid.Column="0" Text="{x:Static res:Strings.Claude_Folder}" Style="{StaticResource FieldLabel}" />
+              <TextBox Grid.Column="1" Text="{Binding ProjectFolder, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"
+                       AutomationProperties.Name="{x:Static res:Strings.Claude_Folder}" />
+              <Button Grid.Column="2" Content="{x:Static res:Strings.Claude_Browse}" Command="{Binding BrowseFolderCommand}" Margin="8,0,0,0" Padding="10,4" />
+            </Grid>
+
+            <Grid Margin="0,0,0,4">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="90" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Grid.Column="0" Text="{x:Static res:Strings.Claude_Prompt}" Style="{StaticResource FieldLabel}" />
+              <TextBox Grid.Column="1" Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" MinLines="1" MaxLines="4"
+                       VerticalContentAlignment="Center" AutomationProperties.Name="{x:Static res:Strings.Claude_Prompt}" />
+            </Grid>
+
+            <StackPanel Orientation="Horizontal" Margin="90,0,0,0">
+              <TextBlock Text="{x:Static res:Strings.Claude_Mode}" Style="{StaticResource FieldLabel}" Width="0" Visibility="Collapsed" />
+              <RadioButton GroupName="Mode" Content="{x:Static res:Strings.Claude_Mode_Autonomous}" Margin="0,0,16,0"
+                           IsChecked="{Binding IsAutonomous}" ToolTip="{x:Static res:Strings.Tip_Autonomous}" />
+              <RadioButton GroupName="Mode" Content="{x:Static res:Strings.Claude_Mode_Interactive}"
+                           IsChecked="{Binding IsAutonomous, Converter={StaticResource NotBool}}" />
+            </StackPanel>
+            <TextBlock Text="{x:Static res:Strings.Warn_Interactive}" Style="{StaticResource Hint}" Margin="90,2,0,6"
+                       Visibility="{Binding IsAutonomous, Converter={StaticResource NotBool}, Mode=OneWay}" />
+
+            <Grid Margin="0,0,0,4">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="90" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Grid.Column="0" Text="{x:Static res:Strings.Claude_Permissions}" Style="{StaticResource FieldLabel}" />
+              <ComboBox Grid.Column="1" ItemsSource="{Binding Permissions}" SelectedItem="{Binding SelectedPermission}"
+                        AutomationProperties.Name="{x:Static res:Strings.Claude_Permissions}" />
+            </Grid>
+
+            <Grid Margin="0,0,0,8">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="90" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Grid.Column="0" Text="{x:Static res:Strings.Claude_Args}" Style="{StaticResource FieldLabel}" />
+              <TextBox Grid.Column="1" Text="{Binding ExtraArguments, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"
+                       AutomationProperties.Name="{x:Static res:Strings.Claude_Args}" />
+            </Grid>
+
+            <StackPanel Orientation="Horizontal">
+              <Button Content="{x:Static res:Strings.Btn_Launch}" Command="{Binding LaunchClaudeCommand}" IsEnabled="{Binding CanLaunchClaude}"
+                      Padding="16,6" Margin="0,0,8,0" />
+              <Button Content="{x:Static res:Strings.Btn_Interrupt}" Command="{Binding InterruptClaudeCommand}" IsEnabled="{Binding CanInterruptClaude}"
+                      Padding="16,6" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>
