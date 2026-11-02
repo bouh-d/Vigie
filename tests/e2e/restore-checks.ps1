@@ -63,6 +63,8 @@ function Test-Original {
     $value.Ac -eq $script:original.Ac -and $value.Dc -eq $script:original.Dc
 }
 
+# The condition runs inside this function, where $Condition, $TimeoutSeconds,
+# $What and $deadline hide any caller variable with the same name.
 function Wait-Until([scriptblock] $Condition, [int] $TimeoutSeconds, [string] $What) {
     $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
     while ([DateTime]::UtcNow -lt $deadline) {
@@ -102,10 +104,10 @@ function Find-Element($Parent, [string] $AutomationId) {
 
 function Open-Vigie {
     $process = Start-Process -FilePath $Executable -PassThru
-    $condition = New-Object System.Windows.Automation.PropertyCondition($Automation::ProcessIdProperty, $process.Id)
+    $byProcess = New-Object System.Windows.Automation.PropertyCondition($Automation::ProcessIdProperty, $process.Id)
     $script:window = $null
     Wait-Until {
-        $script:window = $Automation::RootElement.FindFirst([System.Windows.Automation.TreeScope]::Children, $condition)
+        $script:window = $Automation::RootElement.FindFirst([System.Windows.Automation.TreeScope]::Children, $byProcess)
         $null -ne $script:window
     } 90 'the Vigie window'
 
@@ -171,6 +173,9 @@ function Assert-Restored([string] $Case) {
 }
 
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
+# .NET methods such as Bitmap.Save resolve a relative path against the process
+# directory, not the PowerShell location.
+$OutputDirectory = (Resolve-Path $OutputDirectory).Path
 
 try {
     Stop-AllVigie
