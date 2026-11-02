@@ -7,8 +7,8 @@ ends, including after a crash or a forced shutdown.
 > The interface is in French. This file is also available in French:
 > [README.fr.md](README.fr.md).
 
-<!-- A real screenshot is added here once the application has been run on
-     Windows; it cannot be captured from the Linux build host. -->
+<!-- Screenshot: docs/screenshot.png. The restore checks in continuous
+     integration take one of a running session (artifact "restore-checks"). -->
 
 ## What Vigie cannot do
 

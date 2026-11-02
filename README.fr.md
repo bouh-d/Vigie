@@ -7,8 +7,9 @@ un arrêt forcé.
 
 > English version: [README.md](README.md).
 
-<!-- Une capture d'écran réelle est ajoutée ici une fois l'application exécutée
-     sous Windows ; elle ne peut pas être prise depuis l'hôte de compilation Linux. -->
+<!-- Capture d'écran : docs/screenshot.png. Les vérifications de restauration
+     de l'intégration continue en prennent une pendant une session
+     (artefact « restore-checks »). -->
 
 ## Ce que Vigie ne peut pas faire
 

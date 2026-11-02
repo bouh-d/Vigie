@@ -1,9 +1,11 @@
 # Manual test plan
 
-The unit tests cover the logic without touching the system. Continuous
-integration also runs `tests/e2e/restore-checks.ps1` on a Windows runner, which
-covers T5, T6 and T8 and the command run at sign-in for T7 (a virtual machine
-has no lid or battery, so it checks the restore paths, not the lid behaviour).
+The unit tests cover the logic without touching the system; on Windows a few
+more check every native import and run the watchdog against a real process.
+Continuous integration also runs `tests/e2e/restore-checks.ps1` on a Windows
+runner, which covers T5, T6 and T8 and the command run at sign-in for T7 (a
+virtual machine has no lid or battery, so it checks the restore paths, not the
+lid behaviour).
 The other cases can only be checked on real laptops. Record each run in the
 results table at the bottom.
 

@@ -4,8 +4,8 @@
 
 Vigie targets .NET 10 and builds on Windows. The whole solution also builds on
 Linux through `EnableWindowsTargeting`, and the unit tests run there, which is
-convenient when you do not have a Windows machine at hand. Continuous
-integration runs on Windows.
+convenient when you do not have a Windows machine at hand; the few that need
+Windows itself are skipped. Continuous integration runs on Windows.
 
 ```bash
 dotnet build Vigie.sln -c Release
