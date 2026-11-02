@@ -148,6 +148,18 @@ public class PowerSettingsGuardTests
     }
 
     [Fact]
+    public void BeginRefusesToReplaceAJournalLeftOnDisk()
+    {
+        const string earlier = "{ \"formatVersion\": 1 }";
+        _fileSystem.Write(@"C:\Vigie\restore.json", earlier);
+
+        Assert.Throws<InvalidOperationException>(() => _guard.Begin(Owner(), manageLid: true, manageStandbyOnBattery: false));
+
+        Assert.Equal(earlier, _fileSystem.Read(@"C:\Vigie\restore.json"));
+        Assert.Equal((uint)LidAction.Sleep, _power.Current(Scheme, PowerKnownSettings.Buttons, PowerKnownSettings.LidAction).Ac);
+    }
+
+    [Fact]
     public void AnAccessDeniedLidWriteLeavesLidUnmanaged()
     {
         _power.DeniedWriteSettings.Add(PowerKnownSettings.LidAction);

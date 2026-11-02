@@ -51,6 +51,14 @@ public sealed class PowerSettingsGuard
             throw new InvalidOperationException("A session is already managing power settings.");
         }
 
+        // A journal on disk holds the originals of an earlier session. Writing a
+        // new one over it would lose them, and the values read now could be the
+        // ones that session set.
+        if (_store.Read().Status != JournalStatus.Absent)
+        {
+            throw new InvalidOperationException("An earlier restore journal has not been dealt with.");
+        }
+
         _targets.Clear();
         if (manageLid)
         {
