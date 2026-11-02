@@ -103,10 +103,10 @@ public sealed class Win32PowerApi : IPowerApi
     {
         if (!NativeMethods.GetSystemPowerStatus(out SystemPowerStatus status))
         {
-            return new PowerStatus(PowerSource.Unknown, null, BatterySaverOn: false, BatteryCritical: false);
+            return new PowerStatus(PowerSource.Unknown, null, BatterySaverOn: false);
         }
 
-        return PowerStatus.FromRaw(status.AcLineStatus, status.BatteryFlag, status.BatteryLifePercent, status.SystemStatusFlag);
+        return PowerStatus.FromRaw(status.AcLineStatus, status.BatteryLifePercent, status.SystemStatusFlag);
     }
 
     public void LockWorkstation()

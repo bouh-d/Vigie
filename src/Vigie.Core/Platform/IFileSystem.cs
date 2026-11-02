@@ -28,8 +28,6 @@ public interface IFileSystem
 
     void Delete(string path);
 
-    IReadOnlyList<string> GetFiles(string directory, string searchPattern);
-
     IReadOnlyList<string> GetDirectories(string directory);
 
     void DeleteDirectory(string path, bool recursive);

@@ -13,7 +13,7 @@ public sealed class FakePowerApi : IPowerApi
 
     public bool ModernStandby { get; set; }
 
-    public PowerStatus Status { get; set; } = new(PowerSource.Ac, 100, BatterySaverOn: false, BatteryCritical: false);
+    public PowerStatus Status { get; set; } = new(PowerSource.Ac, 100, BatterySaverOn: false);
 
     public bool FailCreateRequest { get; set; }
 
@@ -75,7 +75,7 @@ public sealed class FakePowerApi : IPowerApi
         }
 
         PowerValue current = _values.GetValueOrDefault((scheme, subgroup, setting));
-        _values[(scheme, subgroup, setting)] = current.WithAc(value);
+        _values[(scheme, subgroup, setting)] = current with { Ac = value };
     }
 
     public void WriteDcValue(Guid scheme, Guid subgroup, Guid setting, uint value)
@@ -86,7 +86,7 @@ public sealed class FakePowerApi : IPowerApi
         }
 
         PowerValue current = _values.GetValueOrDefault((scheme, subgroup, setting));
-        _values[(scheme, subgroup, setting)] = current.WithDc(value);
+        _values[(scheme, subgroup, setting)] = current with { Dc = value };
     }
 
     public void ActivateScheme(Guid scheme)

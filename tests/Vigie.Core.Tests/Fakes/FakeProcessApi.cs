@@ -45,10 +45,8 @@ public sealed class FakeProcessApi : IProcessApi
     private static string? ImageName(string? path) => path is null ? null : Path.GetFileNameWithoutExtension(path);
 }
 
-public sealed class FakeObservedProcess(int processId) : IObservedProcess
+public sealed class FakeObservedProcess : IObservedProcess
 {
-    public int ProcessId { get; } = processId;
-
     public bool HasExited { get; set; }
 
     public int? ExitCode { get; set; }

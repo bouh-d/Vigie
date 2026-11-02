@@ -32,8 +32,6 @@ public interface IProcessOutputSink
 /// survives the process.</summary>
 public interface IObservedProcess : IDisposable
 {
-    int ProcessId { get; }
-
     bool HasExited { get; }
 
     int? ExitCode { get; }
@@ -46,8 +44,6 @@ public interface IObservedProcess : IDisposable
 public interface IManagedProcess : IDisposable
 {
     int ProcessId { get; }
-
-    DateTimeOffset StartTimeUtc { get; }
 
     bool HasExited { get; }
 

@@ -141,7 +141,7 @@ public class SessionControllerTests
     {
         Start(Options() with { BatteryStopThresholdPercent = 20 });
 
-        _power.Status = new PowerStatus(PowerSource.Battery, 19, BatterySaverOn: false, BatteryCritical: false);
+        _power.Status = new PowerStatus(PowerSource.Battery, 19, BatterySaverOn: false);
         _controller.Beat();
 
         Assert.Equal(SessionState.Inactive, _controller.State);

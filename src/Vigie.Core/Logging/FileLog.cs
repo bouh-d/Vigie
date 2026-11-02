@@ -8,7 +8,7 @@ namespace Vigie.Core.Logging;
 /// bound: once it passes the size limit it is rotated, and a fixed number of
 /// older files are kept.
 /// </summary>
-public sealed class FileLog : ILog, IDisposable
+public sealed class FileLog : ILog
 {
     private static readonly char[] LineBreaks = ['\r', '\n'];
 
@@ -39,11 +39,6 @@ public sealed class FileLog : ILog, IDisposable
             RotateIfNeeded();
             _fileSystem.AppendAllText(_path, line);
         }
-    }
-
-    public void Dispose()
-    {
-        // Each write opens and closes the file, so there is nothing to flush.
     }
 
     private static string Tag(LogLevel level) => level switch

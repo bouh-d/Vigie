@@ -93,7 +93,7 @@ public sealed class Win32ProcessApi : IProcessApi
             return null;
         }
 
-        return new ObservedProcess(processId, handle);
+        return new ObservedProcess(handle);
     }
 
     public IManagedProcess Start(ProcessLaunch launch, IProcessOutputSink? outputSink)
@@ -272,11 +272,9 @@ public sealed class Win32ProcessApi : IProcessApi
     [UnmanagedCallersOnly]
     private static int SwallowConsoleEvent(uint ctrlType) => 1;
 
-    private sealed class ObservedProcess(int processId, SafeProcessHandle handle) : IObservedProcess
+    private sealed class ObservedProcess(SafeProcessHandle handle) : IObservedProcess
     {
         private readonly ProcessWaitHandle _exitWaitHandle = new(handle);
-
-        public int ProcessId { get; } = processId;
 
         public WaitHandle ExitWaitHandle => _exitWaitHandle;
 
@@ -311,7 +309,6 @@ public sealed class Win32ProcessApi : IProcessApi
         {
             _process = process;
             ProcessId = process.Id;
-            StartTimeUtc = process.StartTime.ToUniversalTime();
 
             // Exit is taken from the process handle, not from the end of the
             // redirected streams: a background command that inherited the pipe
@@ -325,8 +322,6 @@ public sealed class Win32ProcessApi : IProcessApi
         }
 
         public int ProcessId { get; }
-
-        public DateTimeOffset StartTimeUtc { get; }
 
         public bool HasExited => _process.HasExited;
 

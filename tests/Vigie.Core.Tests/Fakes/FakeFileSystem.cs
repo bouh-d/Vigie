@@ -73,9 +73,6 @@ public sealed class FakeFileSystem : IFileSystem
 
     public void Delete(string path) => _files.Remove(path);
 
-    public IReadOnlyList<string> GetFiles(string directory, string searchPattern)
-        => _files.Keys.Where(p => string.Equals(Path.GetDirectoryName(p), directory, StringComparison.OrdinalIgnoreCase)).ToList();
-
     public IReadOnlyList<string> GetDirectories(string directory)
     {
         string prefix = WithSeparator(directory);

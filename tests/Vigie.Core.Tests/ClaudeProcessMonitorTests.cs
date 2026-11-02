@@ -35,7 +35,7 @@ public class ClaudeProcessMonitorTests
         string path = TestPaths.Of("tools", "claude.exe");
         _fileSystem.WriteBytes(path, PeImageBuilder.Console());
         _processes.Processes.Add(new ProcessEntry(300, path, StartUtc));
-        var observed = new FakeObservedProcess(300);
+        var observed = new FakeObservedProcess();
         _processes.Observable[300] = observed;
 
         ClaudeProcessMonitor monitor = Monitor();

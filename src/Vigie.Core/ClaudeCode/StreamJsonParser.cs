@@ -43,7 +43,7 @@ public static class StreamJsonParser
     {
         return GetString(root, "subtype") switch
         {
-            "init" => new SessionInitEvent(GetString(root, "session_id"), GetString(root, "model")),
+            "init" => new SessionInitEvent(GetString(root, "session_id")),
             "api_retry" => new ApiRetryEvent(
                 GetInt32(root, "attempt") ?? 0,
                 GetInt32(root, "max_retries") ?? 0,

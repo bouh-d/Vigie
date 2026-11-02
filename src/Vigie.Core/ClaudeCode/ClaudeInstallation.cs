@@ -14,10 +14,7 @@ public enum ClaudeInstallationSource
 public sealed record ClaudeInstallation(
     ClaudeInstallationSource Source,
     string ExecutablePath,
-    string? ScriptPath = null)
-{
-    public bool IsNodeScript => ScriptPath is not null;
-}
+    string? ScriptPath = null);
 
 public enum CandidateRejection
 {

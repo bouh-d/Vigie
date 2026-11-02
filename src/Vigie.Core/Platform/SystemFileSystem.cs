@@ -61,13 +61,6 @@ public sealed class SystemFileSystem : IFileSystem
 
     public void Delete(string path) => File.Delete(path);
 
-    public IReadOnlyList<string> GetFiles(string directory, string searchPattern)
-    {
-        return Directory.Exists(directory)
-            ? Directory.GetFiles(directory, searchPattern)
-            : [];
-    }
-
     public IReadOnlyList<string> GetDirectories(string directory)
         => Directory.Exists(directory) ? Directory.GetDirectories(directory) : [];
 

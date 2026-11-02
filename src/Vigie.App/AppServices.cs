@@ -81,6 +81,5 @@ public sealed class AppServices : IDisposable
     public void Dispose()
     {
         Monitor.Dispose();
-        FileLog.Dispose();
     }
 }

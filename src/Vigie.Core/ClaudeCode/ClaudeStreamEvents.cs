@@ -9,7 +9,7 @@ public sealed record ActivityEvent : ClaudeStreamEvent
     public static ActivityEvent Instance { get; } = new();
 }
 
-public sealed record SessionInitEvent(string? SessionId, string? Model) : ClaudeStreamEvent;
+public sealed record SessionInitEvent(string? SessionId) : ClaudeStreamEvent;
 
 /// <param name="ErrorCategory">Claude Code's own category, for example
 /// <c>rate_limit</c> or <c>overloaded</c>.</param>
