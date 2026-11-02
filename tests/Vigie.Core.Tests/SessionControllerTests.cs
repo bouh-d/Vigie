@@ -284,6 +284,61 @@ public class SessionControllerTests
     }
 
     [Fact]
+    public void CompatibilityModeHoldsTheDisplayOnlyWhileTheLidIsClosed()
+    {
+        Start(Options() with { ModernStandbyCompatibility = true });
+        FakePowerRequest request = _power.LastRequest!;
+        Assert.False(request.DisplayRequired);
+
+        _controller.OnLidChanged(closed: true);
+        Assert.True(request.DisplayRequired);
+
+        _controller.OnLidChanged(closed: false);
+        Assert.False(request.DisplayRequired);
+    }
+
+    [Fact]
+    public void CompatibilityModeLocksOnLidCloseEvenWhenLockingWasUnticked()
+    {
+        Start(Options() with { ModernStandbyCompatibility = true, LockOnLidClose = false });
+
+        _controller.OnLidChanged(closed: true);
+
+        Assert.Equal(1, _power.LockCount);
+    }
+
+    [Fact]
+    public void CompatibilityModeHoldsTheDisplayFromTheStartWhenTheLidIsAlreadyClosed()
+    {
+        _controller.OnLidChanged(closed: true);
+
+        Start(Options() with { ModernStandbyCompatibility = true });
+
+        Assert.True(_power.LastRequest!.DisplayRequired);
+    }
+
+    [Fact]
+    public void KeepingTheScreenOnSurvivesOpeningTheLidInCompatibilityMode()
+    {
+        Start(Options() with { ModernStandbyCompatibility = true, KeepDisplayOn = true });
+
+        _controller.OnLidChanged(closed: true);
+        _controller.OnLidChanged(closed: false);
+
+        Assert.True(_power.LastRequest!.DisplayRequired);
+    }
+
+    [Fact]
+    public void WithoutCompatibilityModeTheLidLeavesTheDisplayRequestAlone()
+    {
+        Start(Options());
+
+        _controller.OnLidChanged(closed: true);
+
+        Assert.False(_power.LastRequest!.DisplayRequired);
+    }
+
+    [Fact]
     public void UnpluggingChecksTheBatterySleepTimeoutAtOnce()
     {
         _controller.Start(Options() with { WorkWithLidClosed = false }, Preconditions() with { ModernStandby = true }, trackedProcessAlive: null);

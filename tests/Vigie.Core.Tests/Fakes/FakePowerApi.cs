@@ -49,7 +49,7 @@ public sealed class FakePowerApi : IPowerApi
             throw new PowerApiException("PowerCreateRequest", 1);
         }
 
-        LastRequest = new FakePowerRequest(RequestUsesFallback);
+        LastRequest = new FakePowerRequest(RequestUsesFallback, keepDisplayOn);
         return LastRequest;
     }
 
@@ -120,15 +120,19 @@ public sealed class FakePowerApi : IPowerApi
     public TimeSpan GetTimeSinceLastInput() => TimeSinceLastInput;
 }
 
-public sealed class FakePowerRequest(bool usesFallback) : IPowerRequest
+public sealed class FakePowerRequest(bool usesFallback, bool displayRequired) : IPowerRequest
 {
     public bool UsesFallback { get; } = usesFallback;
+
+    public bool DisplayRequired { get; private set; } = displayRequired;
 
     public int ReassertCount { get; private set; }
 
     public bool Disposed { get; private set; }
 
     public void Reassert() => ReassertCount++;
+
+    public void SetDisplayRequired(bool required) => DisplayRequired = required;
 
     public void Dispose() => Disposed = true;
 }

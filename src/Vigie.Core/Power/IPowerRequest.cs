@@ -2,7 +2,7 @@ namespace Vigie.Core.Power;
 
 /// <summary>
 /// A held power request that keeps the system, and optionally the display,
-/// awake. It must be created on a thread that lives for the whole
+/// awake. It must be created and changed on a thread that lives for the whole
 /// session: the <c>SetThreadExecutionState</c> fallback belongs to its calling
 /// thread.
 /// </summary>
@@ -12,9 +12,13 @@ public interface IPowerRequest : IDisposable
     /// execution-state fallback is in use instead.</summary>
     bool UsesFallback { get; }
 
+    bool DisplayRequired { get; }
+
     /// <summary>
     /// Recreates the request after a resume. Windows ends power requests on a
     /// user-initiated sleep, so a running session asserts them again on wake.
     /// </summary>
     void Reassert();
+
+    void SetDisplayRequired(bool required);
 }

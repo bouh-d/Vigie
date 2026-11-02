@@ -171,7 +171,7 @@ public sealed class Win32PowerApi : IPowerApi
 
         public bool UsesFallback => _handle is null;
 
-        public bool DisplayRequired { get; }
+        public bool DisplayRequired { get; private set; }
 
         public static Win32PowerRequest Create(string reason, bool displayRequired)
         {
@@ -188,6 +188,31 @@ public sealed class Win32PowerApi : IPowerApi
             // old request may no longer count, and a fresh one always does.
             Release();
             Assert();
+        }
+
+        public void SetDisplayRequired(bool required)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (required == DisplayRequired)
+            {
+                return;
+            }
+
+            DisplayRequired = required;
+            if (_handle is { IsInvalid: false } handle)
+            {
+                bool changed = required
+                    ? NativeMethods.PowerSetRequest(handle, PowerRequestType.DisplayRequired)
+                    : NativeMethods.PowerClearRequest(handle, PowerRequestType.DisplayRequired);
+                if (!changed)
+                {
+                    throw new Win32Exception(Marshal.GetLastPInvokeError());
+                }
+            }
+            else
+            {
+                ApplyFallback();
+            }
         }
 
         public void Dispose()
@@ -239,7 +264,7 @@ public sealed class Win32PowerApi : IPowerApi
         }
 
         // The fallback state belongs to the calling thread, which is why the
-        // request is created on the thread that runs the session.
+        // request is created and changed on the thread that runs the session.
         private void ApplyFallback()
         {
             ExecutionState state = ExecutionState.Continuous | ExecutionState.SystemRequired;

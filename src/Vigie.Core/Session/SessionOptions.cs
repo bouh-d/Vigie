@@ -36,6 +36,16 @@ public sealed record SessionOptions
 
     public int BatteryStopThresholdPercent { get; init; } = 20;
 
+    /// <summary>
+    /// For laptops that go to sleep when the screen turns off despite the
+    /// keep-awake request: while the lid is closed a display request is held
+    /// as well. A display request also prevents the idle lock, so closing the
+    /// lid always locks the session in this mode.
+    /// </summary>
+    public bool ModernStandbyCompatibility { get; init; }
+
+    public bool LocksOnLidClose => LockOnLidClose || ModernStandbyCompatibility;
+
     /// <summary>The Claude Code process the "until the task finishes" mode
     /// follows, when that mode is chosen.</summary>
     public int? TrackedProcessId { get; init; }

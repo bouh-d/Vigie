@@ -118,7 +118,7 @@ public sealed class SessionController
 
         try
         {
-            _request = _power.CreateSystemRequest(RequestReason, options.KeepDisplayOn);
+            _request = _power.CreateSystemRequest(RequestReason, DisplayRequiredFor(options, _lidClosed));
         }
         catch (Exception exception) when (exception is PowerApiException or Win32Exception)
         {
@@ -233,20 +233,25 @@ public sealed class SessionController
             return;
         }
 
+        SessionOptions options = _options!;
+        if (options.ModernStandbyCompatibility)
+        {
+            SetDisplayRequired(DisplayRequiredFor(options, closed));
+        }
+
         if (!closed)
         {
             _log.Info(SessionNarration.LidOpened());
             return;
         }
 
-        bool shouldLock = _options!.LockOnLidClose;
-        bool locked = shouldLock && _power.TryLockWorkstation();
-        if (shouldLock && !locked)
+        bool locked = options.LocksOnLidClose && _power.TryLockWorkstation();
+        if (options.LocksOnLidClose && !locked)
         {
             _log.Warning(SessionNarration.LockFailed());
         }
 
-        _log.Info(SessionNarration.LidClosed(locked));
+        _log.Info(SessionNarration.LidClosed(locked, options.ModernStandbyCompatibility));
     }
 
     public void OnConsoleDisplayStateChanged(int state) => _consoleDisplayState = state;
@@ -334,6 +339,23 @@ public sealed class SessionController
 
     private static StartResult Refused(StartRefusal refusal, string? detail = null)
         => new(SessionState.Inactive, refusal, DegradedReason.None, ApplyReport.Empty, detail);
+
+    // In compatibility mode a display request is held while the lid is closed,
+    // on top of the user's own choice to keep the screen on.
+    private static bool DisplayRequiredFor(SessionOptions options, bool lidClosed)
+        => options.KeepDisplayOn || (options.ModernStandbyCompatibility && lidClosed);
+
+    private void SetDisplayRequired(bool required)
+    {
+        try
+        {
+            _request?.SetDisplayRequired(required);
+        }
+        catch (Win32Exception exception)
+        {
+            _log.Error(SessionNarration.ReassertFailed(exception.Message));
+        }
+    }
 
     private void ReassertAfterResume()
     {

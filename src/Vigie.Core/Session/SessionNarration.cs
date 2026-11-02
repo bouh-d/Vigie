@@ -118,8 +118,13 @@ public static class SessionNarration
 
     public static string PowerSchemeChanged() => Fr("Mode d'alimentation changé : les réglages de la session y sont appliqués.");
 
-    public static string LidClosed(bool locked)
-        => Fr(locked ? "Capot fermé : session Windows verrouillée." : "Capot fermé.");
+    public static string LidClosed(bool locked, bool displayHeld)
+    {
+        string compatibility = displayHeld ? ", affichage maintenu actif (compatibilité Modern Standby)" : string.Empty;
+        return locked
+            ? Fr($"Capot fermé : session Windows verrouillée{compatibility}.")
+            : Fr($"Capot fermé{compatibility}.");
+    }
 
     public static string LockFailed() => Fr("Capot fermé : le verrouillage de la session Windows a échoué.");
 
