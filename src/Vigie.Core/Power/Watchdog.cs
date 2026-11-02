@@ -14,8 +14,8 @@ public static class Watchdog
     public static string SessionEndedEventName(int processId, DateTimeOffset startTimeUtc)
         => $@"Local\Vigie.Session.{processId}.{startTimeUtc.UtcTicks}";
 
-    /// <returns>Null when the session ended cleanly; otherwise what the
-    /// restore found.</returns>
+    /// <returns>Null when the session ended cleanly while being watched;
+    /// otherwise what the restore found.</returns>
     public static LeftoverResult? WaitAndRestore(
         int ownerProcessId,
         DateTimeOffset ownerStartTimeUtc,
@@ -28,15 +28,12 @@ public static class Watchdog
             && started is DateTimeOffset start
             && (start - ownerStartTimeUtc).Duration() <= StartTimeTolerance;
 
-        if (ownerAlive)
+        // The owner creates the event before starting the watchdog and holds it
+        // until the session ends. A missing event means the session has ended,
+        // or that the owner died after the check above and took the event with
+        // it; the journal tells the two apart.
+        if (ownerAlive && EventWaitHandle.TryOpenExisting(SessionEndedEventName(ownerProcessId, ownerStartTimeUtc), out EventWaitHandle? sessionEnded))
         {
-            // The owner creates the event before starting the watchdog, so a
-            // missing event means the session has already ended.
-            if (!EventWaitHandle.TryOpenExisting(SessionEndedEventName(ownerProcessId, ownerStartTimeUtc), out EventWaitHandle? sessionEnded))
-            {
-                return null;
-            }
-
             using (sessionEnded)
             {
                 if (WaitHandle.WaitAny([owner!.ExitWaitHandle, sessionEnded]) == 1)

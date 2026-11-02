@@ -26,7 +26,16 @@ public sealed class FakeProcessApi : IProcessApi
     public IReadOnlyList<CommandLineProcessEntry> FindNodeProcesses()
         => NodeQueryFails ? throw new InvalidOperationException("WMI unavailable") : NodeProcesses;
 
-    public DateTimeOffset? GetStartTimeUtc(int processId) => StartTimes.GetValueOrDefault(processId);
+    /// <summary>Runs after each start-time read, to change what the next one
+    /// sees.</summary>
+    public Action<int>? AfterStartTimeRead { get; set; }
+
+    public DateTimeOffset? GetStartTimeUtc(int processId)
+    {
+        DateTimeOffset? started = StartTimes.GetValueOrDefault(processId);
+        AfterStartTimeRead?.Invoke(processId);
+        return started;
+    }
 
     public IObservedProcess? Observe(int processId) => Observable.GetValueOrDefault(processId);
 

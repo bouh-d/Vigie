@@ -67,6 +67,27 @@ public sealed class WatchdogTests : IDisposable
         Assert.Equal((uint)LidAction.DoNothing, LidValue().Ac);
     }
 
+    [WindowsFact]
+    public void AnOwnerThatDiesBeforeTheWatchBeginsIsStillRestored()
+    {
+        const int OwnerId = 999;
+        DateTimeOffset started = new(2026, 1, 2, 13, 0, 0, TimeSpan.Zero);
+        var processes = new FakeProcessApi();
+        processes.Observable[OwnerId] = new FakeObservedProcess();
+        processes.StartTimes[OwnerId] = started;
+        _store.Save(Journal(OwnerId, started));
+
+        // Alive when the watchdog first looks, gone before it opens the
+        // session's event, which died with it.
+        processes.AfterStartTimeRead = id => processes.StartTimes.Remove(id);
+        var leftover = new LeftoverJournal(_store, new JournalRestorer(_power, _store), processes, new FakeEnvironment(), _registry);
+
+        LeftoverResult? result = Watchdog.WaitAndRestore(OwnerId, started, processes, leftover);
+
+        Assert.Equal(LeftoverStatus.Restored, result?.Status);
+        Assert.Equal((uint)LidAction.Sleep, LidValue().Ac);
+    }
+
     // The instance records its own start time; the watchdog reads the owner's
     // through the process API. The two have to agree for the owner to count
     // as running.
