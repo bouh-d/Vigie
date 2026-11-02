@@ -1,4 +1,4 @@
-{"type":"system","subtype":"init","session_id":"abc123","model":"claude-opus-4-8","cwd":"C:\\dev\\project","tools":["Bash","Edit"]}
+{"type":"system","subtype":"init","session_id":"abc123","cwd":"C:\\dev\\project","tools":["Bash","Edit"]}
 {"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Working on it"}]},"session_id":"abc123"}
 not-json garbage line that must be ignored
 {"type":"tool_use_summary","tool":"Bash","uuid":"u1"}

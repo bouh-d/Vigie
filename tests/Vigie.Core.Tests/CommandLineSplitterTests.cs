@@ -8,8 +8,8 @@ public class CommandLineSplitterTests
     [Fact]
     public void SplitsOnWhitespace()
     {
-        Assert.True(CommandLineSplitter.TrySplit("--continue --model opus", out IReadOnlyList<string> args));
-        Assert.Equal(["--continue", "--model", "opus"], args);
+        Assert.True(CommandLineSplitter.TrySplit("--continue --max-turns 5", out IReadOnlyList<string> args));
+        Assert.Equal(["--continue", "--max-turns", "5"], args);
     }
 
     [Fact]
