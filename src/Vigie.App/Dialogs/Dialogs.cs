@@ -96,7 +96,7 @@ public static class JournalUnreadableDialog
         };
         DockPanel.SetDock(message, Dock.Top);
 
-        var ok = new Button { Content = "OK", Padding = new Thickness(16, 6, 16, 6), HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 12, 0, 0), IsDefault = true };
+        var ok = new Button { Content = Strings.Dialog_Ok, Padding = new Thickness(16, 6, 16, 6), HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 12, 0, 0), IsDefault = true };
         ok.Click += (_, _) => dialog.Close();
         DockPanel.SetDock(ok, Dock.Bottom);
 

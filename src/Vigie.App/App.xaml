@@ -3,13 +3,16 @@
              x:Class="Vigie.App.App">
   <Application.Resources>
 
-    <!-- One accent colour, used only for emphasis. Everything else follows the
-         system palette so the high-contrast themes are respected. -->
-    <Color x:Key="AccentColor">#2563EB</Color>
-    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
-    <SolidColorBrush x:Key="WarningBrush" Color="#B45309" />
+    <!-- One accent colour, used only for emphasis. The brushes below are
+         swapped for system colours in a high-contrast theme (see App.xaml.cs),
+         so every style refers to them dynamically. -->
+    <SolidColorBrush x:Key="AccentBrush" Color="#2563EB" />
+    <SolidColorBrush x:Key="ActiveDotBrush" Color="#2563EB" />
+    <SolidColorBrush x:Key="ErrorDotBrush" Color="#B45309" />
+    <SolidColorBrush x:Key="IdleDotBrush" Color="#9CA3AF" />
+    <SolidColorBrush x:Key="WarningForegroundBrush" Color="#92400E" />
     <SolidColorBrush x:Key="WarningBackgroundBrush" Color="#FEF3C7" />
-    <SolidColorBrush x:Key="HintBrush" Color="{x:Static SystemColors.GrayTextColor}" />
+    <SolidColorBrush x:Key="WarningBorderBrush" Color="#B45309" />
 
     <Style x:Key="SectionHeader" TargetType="TextBlock">
       <Setter Property="FontWeight" Value="SemiBold" />
@@ -18,9 +21,9 @@
     </Style>
 
     <Style x:Key="Hint" TargetType="TextBlock">
-      <Setter Property="Foreground" Value="{StaticResource HintBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" />
       <Setter Property="TextWrapping" Value="Wrap" />
-      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontSize" Value="11.5" />
     </Style>
 
     <Style x:Key="FieldLabel" TargetType="TextBlock">
@@ -29,12 +32,32 @@
     </Style>
 
     <Style x:Key="WarningBanner" TargetType="Border">
-      <Setter Property="Background" Value="{StaticResource WarningBackgroundBrush}" />
-      <Setter Property="BorderBrush" Value="{StaticResource WarningBrush}" />
+      <Setter Property="Background" Value="{DynamicResource WarningBackgroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource WarningBorderBrush}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="4" />
       <Setter Property="Padding" Value="10,8" />
       <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+    <Style x:Key="WarningText" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource WarningForegroundBrush}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style x:Key="StatusDot" TargetType="Ellipse">
+      <Setter Property="Width" Value="10" />
+      <Setter Property="Height" Value="10" />
+      <Setter Property="Margin" Value="0,0,6,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Fill" Value="{DynamicResource IdleDotBrush}" />
+    </Style>
+
+    <Style x:Key="SessionProgress" TargetType="ProgressBar">
+      <Setter Property="Height" Value="6" />
+      <Setter Property="Minimum" Value="0" />
+      <Setter Property="Maximum" Value="1" />
+      <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
     </Style>
 
     <Style x:Key="Card" TargetType="Border">

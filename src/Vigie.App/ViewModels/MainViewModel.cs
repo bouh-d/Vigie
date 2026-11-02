@@ -5,6 +5,7 @@ using System.Windows.Interop;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Vigie.App.Dialogs;
 using Vigie.App.Resources;
 using Vigie.Core.ClaudeCode;
 using Vigie.Core.Logging;
@@ -16,25 +17,30 @@ namespace Vigie.App.ViewModels;
 public sealed partial class MainViewModel : ObservableObject
 {
     private static readonly TimeSpan InterruptGrace = TimeSpan.FromSeconds(10);
+    private const int JournalCapacity = 500;
+    private const long VisibleScanInterval = 3;
+    private const long HiddenScanInterval = 10;
+    private const long LocateInterval = 30;
+    private const long BeatInterval = 5;
 
     private readonly AppServices _services;
     private readonly Dispatcher _dispatcher;
     private readonly DispatcherTimer _timer;
     private readonly HashSet<int> _vigieProcessIds = [];
+    private readonly HashSet<string> _reportedOnce = [];
     private readonly ObservableCollection<LogEntry> _journal = [];
+    private readonly bool _modernStandby;
 
     private PowerEventWindow? _powerWindow;
     private ClaudeRun? _run;
+    private ExternalExit? _lastExternalExit;
     private int? _trackedProcessId;
     private IReadOnlySet<int> _aliveProcessIds = new HashSet<int>();
     private TimeSpan _sessionTotal;
     private bool _windowVisible = true;
     private long _tick;
-    private long _lastScanTick = long.MinValue;
-    private readonly bool _modernStandby;
-    private bool _onBattery;
-    private int? _batteryPercent;
-    private bool _batterySaver;
+    private long _lastScanTick = long.MinValue / 2;
+    private long _lastLocateTick;
     private bool _lidClosed;
 
     public MainViewModel(AppServices services, Dispatcher dispatcher)
@@ -47,17 +53,18 @@ public sealed partial class MainViewModel : ObservableObject
         Permissions = PermissionItem.All;
         SelectedPermission = Permissions[0];
 
-        services.UiLog.EntryWritten += (_, entry) => _dispatcher.BeginInvoke(() => AppendJournal(entry));
         foreach (LogEntry entry in services.UiLog.Snapshot())
         {
             _journal.Add(entry);
         }
 
+        services.UiLog.EntryWritten += (_, entry) => _dispatcher.BeginInvoke(() => AppendJournal(entry));
         services.Session.StateChanged += (_, _) => _dispatcher.BeginInvoke(UpdateSessionDisplay);
         services.Session.SleepDetected += (_, period) => _dispatcher.BeginInvoke(() => DisplaySleepBanner(period));
-        services.Session.Stopped += (_, _) => _dispatcher.BeginInvoke(OnSessionStopped);
+        services.Session.Stopped += (_, result) => _dispatcher.BeginInvoke(() => OnSessionStopped(result));
 
         RefreshPowerStatus();
+        LocateClaude();
         UpdateSessionDisplay();
         UpdateClaudeDisplay();
 
@@ -65,6 +72,10 @@ public sealed partial class MainViewModel : ObservableObject
         _timer.Tick += (_, _) => OnTick();
         _timer.Start();
     }
+
+    /// <summary>A short message for the notification area, such as the
+    /// battery threshold being reached.</summary>
+    public event EventHandler<string>? NotificationRequested;
 
     public ReadOnlyObservableCollection<LogEntry> Journal { get; }
 
@@ -99,6 +110,9 @@ public sealed partial class MainViewModel : ObservableObject
     public partial int CustomMinutes { get; set; } = 90;
 
     [ObservableProperty]
+    public partial int TaskCapHours { get; set; } = 8;
+
+    [ObservableProperty]
     public partial bool KeepDisplayOn { get; set; }
 
     [ObservableProperty]
@@ -112,6 +126,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     public partial int BatteryThreshold { get; set; } = 20;
+
+    [ObservableProperty]
+    public partial bool ModernStandbyCompatibility { get; set; }
 
     [ObservableProperty]
     public partial bool IsAutonomous { get; set; } = true;
@@ -138,7 +155,13 @@ public sealed partial class MainViewModel : ObservableObject
     public partial string ClaudeBadgeText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    public partial bool CanLaunchClaude { get; set; } = true;
+    public partial ClaudeActivity ClaudeActivity { get; set; }
+
+    [ObservableProperty]
+    public partial bool ClaudeAvailable { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsLaunching { get; set; }
 
     [ObservableProperty]
     public partial bool CanInterruptClaude { get; set; }
@@ -166,6 +189,12 @@ public sealed partial class MainViewModel : ObservableObject
 
     public bool OptionsEnabled => !IsSessionRunning;
 
+    public bool LockOptionEnabled => OptionsEnabled && !ModernStandbyCompatibility;
+
+    public bool CanLaunchClaude => ClaudeAvailable && !IsLaunching;
+
+    public bool IsClaudeRunning => _run is { HasExited: false };
+
     public void AttachWindow(HwndSource source)
     {
         _powerWindow = new PowerEventWindow(source);
@@ -175,6 +204,41 @@ public sealed partial class MainViewModel : ObservableObject
 
     public void SetWindowVisible(bool visible) => _windowVisible = visible;
 
+    /// <summary>
+    /// Deals with a journal left by a session that did not end normally: it is
+    /// restored unless its owner still runs, and an unreadable one is shown as
+    /// it is, with nothing written. Returns the journal state that remains.
+    /// </summary>
+    public JournalStatus HandleLeftoverJournal()
+    {
+        LeftoverResult result = _services.Leftover.RestoreIfOrphaned();
+        switch (result.Status)
+        {
+            case LeftoverStatus.Restored:
+                RestoreReport report = result.Report!;
+                _services.Log.Warning(SessionNarration.LeftoverRestored());
+                foreach (string line in SessionNarration.Restored(report))
+                {
+                    _services.Log.Info(line);
+                }
+
+                ShowMessage(
+                    report.Complete
+                        ? Strings.Format(Strings.Dialog_Restored, SessionNarration.RestoredSummary(report))
+                        : Strings.Dialog_UnrestoredJournal,
+                    Strings.Dialog_RestoredTitle);
+                break;
+            case LeftoverStatus.Unreadable:
+                _services.Log.Error(SessionNarration.JournalUnreadable());
+                JournalUnreadableDialog.Show(result.RawContent ?? string.Empty);
+                break;
+        }
+
+        return _services.JournalStore.Read().Status;
+    }
+
+    public void StopForQuit() => _services.Session.Stop(StopReason.UserStopped);
+
     public void ShutDown(StopReason reason)
     {
         _timer.Stop();
@@ -183,72 +247,46 @@ public sealed partial class MainViewModel : ObservableObject
         _powerWindow = null;
     }
 
-    public bool IsClaudeRunning => _run is { HasExited: false };
-
-    public void StopForQuit() => _services.Session.Stop(StopReason.UserStopped);
-
-    private void OnTick()
-    {
-        _tick++;
-
-        long scanInterval = _windowVisible ? 3 : 10;
-        if (_tick - _lastScanTick >= scanInterval)
-        {
-            _lastScanTick = _tick;
-            RefreshProcesses();
-        }
-
-        if (_services.Session.IsRunning)
-        {
-            if (_tick % 5 == 0)
-            {
-                _services.Session.Beat();
-            }
-
-            if (_windowVisible)
-            {
-                UpdateCountdown();
-            }
-        }
-
-        UpdateTrayTooltip();
-    }
-
     [RelayCommand]
     private void StartSession()
     {
         if (!TryBuildOptions(out SessionOptions options))
         {
+            ShowMessage(Strings.Dialog_InvalidOptions, Strings.AppTitle);
             return;
         }
 
+        JournalStatus journal = HandleLeftoverJournal();
         PowerStatus status = _services.Power.GetPowerStatus();
         var preconditions = new SessionPreconditions(
             _modernStandby,
             status,
             PowerPolicies.Read(_services.Registry),
-            TrackedProcessAlive());
+            TrackedProcessAlive(),
+            journal);
 
         StartResult result = _services.Session.Start(options, preconditions, TrackedProcessAlive);
-        switch (result.Refusal)
+        string? refusal = result.Refusal switch
         {
-            case StartRefusal.KeepAwakeBlockedByPolicy:
-                ShowMessage(Strings.Warn_RequestsBlocked, Strings.Dialog_RequestsBlockedTitle);
-                return;
-            case StartRefusal.TrackedProcessGone:
-                ShowMessage(Strings.Claude_Idle, Strings.AppTitle);
-                return;
-            case StartRefusal.PowerRequestFailed:
-                ShowMessage(Strings.Warn_RequestsBlocked, Strings.Dialog_RequestsBlockedTitle);
-                return;
+            StartRefusal.None => null,
+            StartRefusal.KeepAwakeBlockedByPolicy => Strings.Warn_RequestsBlocked,
+            StartRefusal.UnrestoredJournal => Strings.Dialog_UnrestoredJournal,
+            StartRefusal.TrackedProcessGone => Strings.Claude_TargetGone,
+            _ => Strings.Format(Strings.Dialog_StartFailed, result.Detail ?? string.Empty),
+        };
+
+        if (refusal is not null)
+        {
+            ShowMessage(refusal, Strings.Dialog_RequestsBlockedTitle);
+            return;
         }
 
         _sessionTotal = options.EffectiveCeiling;
         ShowRebootWarning = preconditions.Policies.RebootPending;
         ShowModernStandbyInfo = _modernStandby;
         ShowBatteryWarning = status.OnBattery;
-        UpdateDegradedBanner(result.Degraded);
         ShowSleepBanner = false;
+        UpdateDegradedBanner(result.Degraded);
         UpdateSessionDisplay();
     }
 
@@ -264,25 +302,38 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
-        ClaudeLocateResult located = _services.Locator.Locate(userPath: null, ProjectFolder);
-        if (located.Installation is not { } installation)
+        if (IsAutonomous && string.IsNullOrWhiteSpace(Prompt))
         {
-            ShowMessage(Strings.Claude_NotFound, Strings.AppTitle);
+            ShowMessage(Strings.Claude_PromptRequired, Strings.AppTitle);
             return;
         }
 
-        CanLaunchClaude = false;
+        if (!CommandLineSplitter.TrySplit(ExtraArguments, out IReadOnlyList<string> extra))
+        {
+            ShowMessage(Strings.Claude_ArgumentsInvalid, Strings.AppTitle);
+            return;
+        }
+
+        if (ClaudeCommand.FindReservedArgument(extra) is string reserved)
+        {
+            ShowMessage(Strings.Format(Strings.Claude_ArgumentReserved, reserved), Strings.AppTitle);
+            return;
+        }
+
+        // Located again right before the launch, so a file swapped since the
+        // last check is caught.
+        if (LocateClaude() is not { } installation)
+        {
+            ShowMessage(Strings.Format(Strings.Claude_NotFound, Strings.Claude_InstallUrl), Strings.AppTitle);
+            return;
+        }
+
+        IsLaunching = true;
         try
         {
             PreflightResult preflight = await _services.Preflight.CheckAsync(installation, CancellationToken.None);
             if (!HandlePreflight(preflight))
             {
-                return;
-            }
-
-            if (!CommandLineSplitter.TrySplit(ExtraArguments, out IReadOnlyList<string> extra))
-            {
-                ShowMessage(Strings.Claude_CheckFailed, Strings.AppTitle);
                 return;
             }
 
@@ -297,7 +348,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
         finally
         {
-            CanLaunchClaude = true;
+            IsLaunching = false;
         }
     }
 
@@ -307,7 +358,9 @@ public sealed partial class MainViewModel : ObservableObject
         if (_run is { } run && !run.HasExited)
         {
             CanInterruptClaude = false;
-            await run.InterruptAsync(InterruptGrace);
+            InterruptOutcome outcome = await run.InterruptAsync(InterruptGrace);
+            _services.Log.Info(ClaudeNarration.Interrupted(outcome));
+            UpdateClaudeDisplay();
         }
     }
 
@@ -324,7 +377,7 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void OpenLogs()
     {
-        _services.Storage.EnsureCreated();
+        _services.FileSystem.CreateDirectory(_services.Storage.LogDirectory);
         Process.Start(new ProcessStartInfo(_services.Storage.LogDirectory) { UseShellExecute = true });
     }
 
@@ -342,76 +395,139 @@ public sealed partial class MainViewModel : ObservableObject
         Application.Current.Shutdown();
     }
 
+    private void OnTick()
+    {
+        _tick++;
+
+        if (_tick - _lastScanTick >= (_windowVisible ? VisibleScanInterval : HiddenScanInterval))
+        {
+            _lastScanTick = _tick;
+            RefreshProcesses();
+        }
+
+        if (_tick - _lastLocateTick >= LocateInterval)
+        {
+            LocateClaude();
+        }
+
+        if (_services.Session.IsRunning)
+        {
+            if (_tick % BeatInterval == 0)
+            {
+                _services.Session.Beat();
+            }
+
+            if (_windowVisible)
+            {
+                UpdateCountdown();
+            }
+        }
+
+        UpdateTrayTooltip();
+    }
+
     private void StartRun(ClaudeInstallation installation, ClaudeLaunchRequest request, ClaudeLaunchMode mode)
     {
         _run?.Dispose();
         string? runDirectory = mode == ClaudeLaunchMode.Autonomous ? _services.Storage.CreateRunDirectory(_services.Clock.Now) : null;
-        var launch = ClaudeCommand.Build(installation, request);
-        _run = ClaudeRun.Start(_services.Processes, _services.FileSystem, _services.Clock, launch, mode, runDirectory);
-        _vigieProcessIds.Add(_run.ProcessId);
-        _trackedProcessId = _run.ProcessId;
+        ClaudeRun run = ClaudeRun.Start(_services.Processes, _services.FileSystem, _services.Clock, ClaudeCommand.Build(installation, request), mode, runDirectory);
+        _run = run;
+        _vigieProcessIds.Add(run.ProcessId);
+        _trackedProcessId = run.ProcessId;
 
-        _run.EventReceived += (_, _) => _dispatcher.BeginInvoke(UpdateClaudeDisplay);
-        _run.Exited += (_, _) => _dispatcher.BeginInvoke(UpdateClaudeDisplay);
+        run.EventReceived += (_, streamEvent) => _dispatcher.BeginInvoke(() => OnRunEvent(streamEvent));
+        run.Exited += (_, _) => _dispatcher.BeginInvoke(() => OnRunExited(run));
 
-        _services.Log.Info(FrenchTypography.Fix($"Claude Code lancé (PID {_run.ProcessId})."));
+        _services.Log.Info(ClaudeNarration.Launched(run.ProcessId, mode));
+        if (runDirectory is not null)
+        {
+            _services.Log.Info(ClaudeNarration.OutputRecordedIn(runDirectory));
+        }
+
+        RefreshProcesses();
+    }
+
+    private void OnRunEvent(ClaudeStreamEvent streamEvent)
+    {
+        switch (streamEvent)
+        {
+            case SessionInitEvent { SessionId: { } sessionId }:
+                _services.Log.Info(ClaudeNarration.SessionIdentified(sessionId));
+                break;
+            case ApiRetryEvent retry:
+                _services.Log.Warning(ClaudeNarration.Retry(retry));
+                break;
+            case PermissionDeniedEvent denied:
+                _services.Log.Warning(ClaudeNarration.PermissionDenied(denied));
+                break;
+            case ResultEvent result:
+                _services.Log.Write(result.Succeeded ? LogLevel.Info : LogLevel.Warning, ClaudeNarration.Result(result));
+                break;
+        }
+
+        UpdateClaudeDisplay();
+    }
+
+    private void OnRunExited(ClaudeRun run)
+    {
+        ClaudeRunSnapshot snapshot = run.Snapshot();
+        _services.Log.Info(ClaudeNarration.Exited(snapshot.ProcessId, snapshot.ExitCode ?? -1));
+        if (snapshot.RecordingError is { } error)
+        {
+            _services.Log.Warning(ClaudeNarration.RecordingFailed(error));
+        }
+
         RefreshProcesses();
     }
 
     private bool HandlePreflight(PreflightResult preflight)
     {
-        switch (preflight.Status)
+        string? problem = preflight.Status switch
         {
-            case PreflightStatus.Ready:
-                return true;
-            case PreflightStatus.NotLoggedIn:
-                ShowMessage(Strings.Claude_NotLoggedIn, Strings.AppTitle);
-                return false;
-            case PreflightStatus.NotExecutable:
-                ShowMessage(Strings.Claude_NotFound, Strings.AppTitle);
-                return false;
-            default:
-                ShowMessage(Strings.Claude_CheckFailed, Strings.AppTitle);
-                return false;
+            PreflightStatus.Ready => null,
+            PreflightStatus.NotLoggedIn => Strings.Claude_NotLoggedIn,
+            PreflightStatus.NotExecutable => Strings.Format(Strings.Claude_NotFound, Strings.Claude_InstallUrl),
+            _ => Strings.Claude_CheckFailed,
+        };
+
+        if (problem is not null)
+        {
+            ShowMessage(problem, Strings.AppTitle);
         }
+
+        return problem is null;
     }
 
     private bool TryBuildOptions(out SessionOptions options)
     {
         bool untilTask = SelectedDuration == DurationChoice.UntilTask;
+        if (untilTask)
+        {
+            _trackedProcessId = SelectedTaskTarget?.ProcessId ?? _trackedProcessId;
+        }
+
         options = new SessionOptions
         {
             DurationKind = untilTask ? SessionDurationKind.UntilTask : SessionDurationKind.Fixed,
             FixedDuration = DurationFromChoice(),
+            TaskModeCap = TimeSpan.FromHours(TaskCapHours),
             KeepDisplayOn = KeepDisplayOn,
             WorkWithLidClosed = WorkWithLidClosed,
             LockOnLidClose = LockOnLidClose,
             SuspendAtEndIfLidClosed = SuspendAtEnd,
-            BatteryStopThresholdPercent = Math.Clamp(BatteryThreshold, 10, 50),
-            TrackedProcessId = untilTask ? SelectedTaskTarget?.ProcessId ?? _trackedProcessId : null,
+            BatteryStopThresholdPercent = BatteryThreshold,
+            ModernStandbyCompatibility = ModernStandbyCompatibility,
         };
 
-        if (untilTask)
-        {
-            _trackedProcessId = options.TrackedProcessId;
-        }
-
-        if (!options.IsValid(out _))
-        {
-            ShowMessage(Strings.Format(Strings.Opt_BatteryStopPrefix + " 10–50 %."), Strings.AppTitle);
-            return false;
-        }
-
-        return true;
+        return TaskCapHours is >= 1 and <= 24 && options.IsValid(out _);
     }
 
     private TimeSpan DurationFromChoice() => SelectedDuration switch
     {
         DurationChoice.FifteenMinutes => TimeSpan.FromMinutes(15),
         DurationChoice.OneHour => TimeSpan.FromHours(1),
-        DurationChoice.TwoHours => TimeSpan.FromHours(2),
         DurationChoice.FourHours => TimeSpan.FromHours(4),
-        DurationChoice.Custom => TimeSpan.FromMinutes(Math.Clamp(CustomMinutes, 5, 24 * 60)),
+        DurationChoice.Custom => TimeSpan.FromMinutes(CustomMinutes),
         _ => TimeSpan.FromHours(2),
     };
 
@@ -430,11 +546,36 @@ public sealed partial class MainViewModel : ObservableObject
         return _aliveProcessIds.Contains(pid);
     }
 
+    private ClaudeInstallation? LocateClaude()
+    {
+        _lastLocateTick = _tick;
+        string? project = string.IsNullOrWhiteSpace(ProjectFolder) ? null : ProjectFolder;
+        ClaudeLocateResult located = _services.Locator.Locate(userPath: null, project);
+        foreach (RejectedCandidate candidate in located.Rejected)
+        {
+            ReportOnce($"{candidate.Path}|{candidate.Reason}", ClaudeNarration.CandidateRejected(candidate), LogLevel.Info);
+        }
+
+        ClaudeAvailable = located.Installation is not null;
+        return located.Installation;
+    }
+
     private void RefreshProcesses()
     {
         MonitorScan scan = _services.Monitor.Scan(_vigieProcessIds);
         _aliveProcessIds = scan.Processes.Select(p => p.ProcessId).ToHashSet();
+        if (scan.NodeScanError is { } error)
+        {
+            ReportOnce($"node|{error}", ClaudeNarration.NodeScanFailed(error), LogLevel.Warning);
+        }
 
+        foreach (ExternalExit exit in scan.ExternalExits)
+        {
+            _services.Log.Info(ClaudeNarration.ExternalExited(exit));
+            _lastExternalExit = exit;
+        }
+
+        int? selected = SelectedTaskTarget?.ProcessId;
         DetectedProcesses.Clear();
         TaskTargets.Clear();
         foreach (ClaudeProcessInfo process in scan.Processes)
@@ -444,7 +585,10 @@ public sealed partial class MainViewModel : ObservableObject
             TaskTargets.Add(item);
         }
 
-        SelectedTaskTarget ??= TaskTargets.FirstOrDefault(t => t.ProcessId == _trackedProcessId) ?? TaskTargets.FirstOrDefault();
+        // The task Vigie launched is offered first.
+        SelectedTaskTarget = TaskTargets.FirstOrDefault(t => t.ProcessId == selected)
+            ?? TaskTargets.FirstOrDefault(t => t.ProcessId == _trackedProcessId)
+            ?? TaskTargets.FirstOrDefault();
         UpdateClaudeDisplay();
     }
 
@@ -452,16 +596,12 @@ public sealed partial class MainViewModel : ObservableObject
     {
         if (broadcast.Setting == PowerKnownSettings.AcDcPowerSource)
         {
-            _onBattery = broadcast.Value != 0;
-            _services.Session.OnPowerSourceChanged(_services.Power.GetPowerStatus());
+            PowerStatus status = _services.Power.GetPowerStatus();
+            _services.Session.OnPowerSourceChanged(status);
             if (IsSessionRunning)
             {
-                ShowBatteryWarning = _onBattery;
+                ShowBatteryWarning = status.OnBattery;
             }
-        }
-        else if (broadcast.Setting == PowerKnownSettings.BatteryPercentageRemaining)
-        {
-            _batteryPercent = broadcast.Value;
         }
         else if (broadcast.Setting == PowerKnownSettings.LidSwitchStateChange)
         {
@@ -483,20 +623,16 @@ public sealed partial class MainViewModel : ObservableObject
     private void RefreshPowerStatus()
     {
         PowerStatus status = _services.Power.GetPowerStatus();
-        _onBattery = status.OnBattery;
-        _batteryPercent = status.BatteryPercent ?? _batteryPercent;
-        _batterySaver = status.BatterySaverOn;
-
         var parts = new List<string>
         {
-            _onBattery
-                ? (_batteryPercent is int percent ? Strings.Format(Strings.Power_Battery, percent) : Strings.Power_PercentUnknown)
+            status.OnBattery
+                ? (status.BatteryPercent is int percent ? Strings.Format(Strings.Power_Battery, percent) : Strings.Power_PercentUnknown)
                 : Strings.Power_Ac,
             _lidClosed ? Strings.Power_LidClosed : Strings.Power_LidOpen,
             _modernStandby ? Strings.Power_ModernStandby : Strings.Power_LegacySleep,
         };
 
-        if (_batterySaver)
+        if (status.BatterySaverOn)
         {
             parts.Add(Strings.Power_BatterySaver);
         }
@@ -507,9 +643,6 @@ public sealed partial class MainViewModel : ObservableObject
     private void UpdateSessionDisplay()
     {
         IsSessionRunning = _services.Session.IsRunning;
-        OnPropertyChanged(nameof(OptionsEnabled));
-        StartSessionCommand.NotifyCanExecuteChanged();
-
         SessionBadgeText = IsSessionRunning ? Strings.Badge_Active : Strings.Badge_Inactive;
 
         if (!IsSessionRunning)
@@ -519,58 +652,59 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
+        if (_services.Session.Degraded == DegradedReason.ThirdPartyConflict)
+        {
+            UpdateDegradedBanner(DegradedReason.ThirdPartyConflict);
+        }
+
         UpdateCountdown();
     }
 
     private void UpdateCountdown()
     {
-        TimeSpan? remaining = _services.Session.RemainingTime;
-        DateTimeOffset? end = _services.Session.EndTime;
-        if (remaining is null || end is null)
+        if (_services.Session.RemainingTime is not TimeSpan remaining || _services.Session.EndTime is not DateTimeOffset end)
         {
             return;
         }
 
-        string endLabel = end.Value.ToLocalTime().ToString("HH:mm");
-        bool untilTask = SelectedDuration == DurationChoice.UntilTask;
-
+        string endLabel = end.ToLocalTime().ToString("HH:mm");
         if (_services.Session.Degraded != DegradedReason.None)
         {
             SessionStateText = Strings.State_Degraded;
         }
-        else if (untilTask)
+        else if (SelectedDuration == DurationChoice.UntilTask)
         {
             SessionStateText = Strings.Format(Strings.State_ActiveUntilTask, endLabel);
         }
         else
         {
-            SessionStateText = Strings.Format(Strings.State_Active, FormatDuration(remaining.Value), endLabel);
+            SessionStateText = Strings.Format(Strings.State_Active, FormatClock(remaining), endLabel);
         }
 
         Progress = _sessionTotal > TimeSpan.Zero
-            ? Math.Clamp(1 - (remaining.Value.TotalSeconds / _sessionTotal.TotalSeconds), 0, 1)
+            ? Math.Clamp(1 - (remaining.TotalSeconds / _sessionTotal.TotalSeconds), 0, 1)
             : 0;
     }
 
-    private void OnSessionStopped()
+    private void OnSessionStopped(StopResult result)
     {
         ShowBatteryWarning = false;
         ShowModernStandbyInfo = false;
         ShowRebootWarning = false;
         ShowDegradedBanner = false;
+        if (result.Reason == StopReason.BatteryThreshold)
+        {
+            int percent = _services.Power.GetPowerStatus().BatteryPercent ?? BatteryThreshold;
+            NotificationRequested?.Invoke(this, Strings.Format(Strings.Warn_BatteryThreshold, percent));
+        }
+
         UpdateSessionDisplay();
     }
 
     private void UpdateDegradedBanner(DegradedReason reason)
     {
         ShowDegradedBanner = reason != DegradedReason.None;
-        DegradedText = reason switch
-        {
-            DegradedReason.LidActionPolicy => Strings.Warn_LidUnmanaged,
-            DegradedReason.WriteDenied => Strings.Warn_LidUnmanaged,
-            DegradedReason.ThirdPartyConflict => Strings.Warn_LidUnmanaged,
-            _ => string.Empty,
-        };
+        DegradedText = reason == DegradedReason.LidActionPolicy ? Strings.Warn_LidUnmanaged : Strings.Warn_LidNotChanged;
     }
 
     private void DisplaySleepBanner(SleepPeriod period)
@@ -579,68 +713,84 @@ public sealed partial class MainViewModel : ObservableObject
             Strings.Warn_SleepDetected,
             period.Start.ToLocalTime().ToString("HH:mm"),
             period.End.ToLocalTime().ToString("HH:mm"),
-            FormatDuration(period.Duration));
+            FormatShort(period.Duration));
         ShowSleepBanner = true;
     }
 
     private void UpdateClaudeDisplay()
     {
         CanInterruptClaude = _run is { HasExited: false };
+        int running = DetectedProcesses.Count;
 
         if (_run is { } run)
         {
             ClaudeRunSnapshot snapshot = run.Snapshot();
             ClaudeRunOutcome outcome = ClaudeRunClassifier.Classify(snapshot);
-            ClaudeStateText = DescribeRun(snapshot, outcome);
-            ClaudeBadgeText = outcome == ClaudeRunOutcome.Running
-                ? Strings.Format(Strings.Claude_Badge_Running, DetectedProcesses.Count)
-                : Strings.Claude_Badge_Idle;
-            if (outcome != ClaudeRunOutcome.Running)
+            ClaudeStateText = DescribeRun(snapshot, outcome, running);
+            ClaudeActivity = outcome switch
             {
-                return;
-            }
+                ClaudeRunOutcome.Running => ClaudeActivity.Running,
+                ClaudeRunOutcome.Succeeded or ClaudeRunOutcome.Interrupted => running > 0 ? ClaudeActivity.Running : ClaudeActivity.Done,
+                _ => running > 0 ? ClaudeActivity.Running : ClaudeActivity.Error,
+            };
+        }
+        else if (running > 0)
+        {
+            ClaudeStateText = RunningText(running);
+            ClaudeActivity = ClaudeActivity.Running;
+        }
+        else if (_lastExternalExit is { } exit)
+        {
+            ClaudeStateText = exit.ExitCode is int code ? Strings.Format(Strings.Claude_Done_External, code) : Strings.Claude_Done_Unknown;
+            ClaudeActivity = exit.ExitCode is null or 0 ? ClaudeActivity.Done : ClaudeActivity.Error;
+        }
+        else
+        {
+            ClaudeStateText = Strings.Claude_Idle;
+            ClaudeActivity = ClaudeActivity.Idle;
         }
 
-        if (DetectedProcesses.Count == 0)
+        ClaudeBadgeText = ClaudeActivity switch
         {
-            ClaudeStateText = _run is null ? Strings.Claude_Idle : ClaudeStateText;
-            ClaudeBadgeText = Strings.Claude_Badge_Idle;
-        }
-        else if (_run is null)
-        {
-            ClaudeStateText = DetectedProcesses.Count == 1
-                ? Strings.Claude_Running_One
-                : Strings.Format(Strings.Claude_Running_Many, DetectedProcesses.Count);
-            ClaudeBadgeText = Strings.Format(Strings.Claude_Badge_Running, DetectedProcesses.Count);
-        }
+            ClaudeActivity.Running => Strings.Format(Strings.Claude_Badge_Running, Math.Max(running, 1)),
+            ClaudeActivity.Done => Strings.Claude_Badge_Done,
+            ClaudeActivity.Error => Strings.Claude_Badge_Error,
+            _ => Strings.Claude_Badge_Idle,
+        };
     }
 
-    private static string DescribeRun(ClaudeRunSnapshot run, ClaudeRunOutcome outcome) => outcome switch
+    private static string DescribeRun(ClaudeRunSnapshot run, ClaudeRunOutcome outcome, int running) => outcome switch
     {
-        ClaudeRunOutcome.Running when run.LastRetry is { } retry =>
-            Strings.Format(Strings.Claude_Retry, retry.Attempt, retry.MaxRetries),
-        ClaudeRunOutcome.Running => Strings.Claude_Running_One,
+        ClaudeRunOutcome.Running when run.LastRetry is { } retry => Strings.Format(Strings.Claude_Retry, retry.Attempt, retry.MaxRetries),
+        ClaudeRunOutcome.Running => RunningText(Math.Max(running, 1)),
         ClaudeRunOutcome.Succeeded => Strings.Format(
             Strings.Claude_Done_Success,
-            FormatRunDuration(run),
+            FormatShort(RunDuration(run)),
             run.Result?.NumTurns ?? 0,
             run.PermissionDenials),
         ClaudeRunOutcome.Interrupted => Strings.Claude_Done_Interrupted,
         ClaudeRunOutcome.UnexpectedStop => Strings.Claude_Error_Unexpected,
-        _ => Strings.Format(Strings.Claude_Error, run.ExitCode ?? -1, run.LastErrorLine ?? run.Result?.Subtype ?? string.Empty),
+        _ => Strings.Format(Strings.Claude_Error, run.ExitCode ?? -1, run.LastErrorLine ?? run.Result?.Errors.FirstOrDefault() ?? run.Result?.Subtype ?? string.Empty),
     };
 
-    private static string FormatRunDuration(ClaudeRunSnapshot run)
-    {
-        TimeSpan duration = (run.ExitedAt ?? run.StartedAt) - run.StartedAt;
-        return FormatDuration(duration);
-    }
+    private static string RunningText(int running)
+        => running == 1 ? Strings.Claude_Running_One : Strings.Format(Strings.Claude_Running_Many, running);
 
-    private static string FormatDuration(TimeSpan duration)
+    // The result's own duration is preferred: it excludes the time the
+    // process spends winding down background commands.
+    private static TimeSpan RunDuration(ClaudeRunSnapshot run)
+        => run.Result?.DurationMs is long milliseconds
+            ? TimeSpan.FromMilliseconds(milliseconds)
+            : (run.ExitedAt ?? run.StartedAt) - run.StartedAt;
+
+    private static string FormatClock(TimeSpan duration)
+        => $"{(int)duration.TotalHours:00}:{duration.Minutes:00}:{duration.Seconds:00}";
+
+    private static string FormatShort(TimeSpan duration)
     {
         if (duration.TotalHours >= 1)
         {
-            return $"{(int)duration.TotalHours:00}:{duration.Minutes:00}:{duration.Seconds:00}";
+            return duration.Minutes > 0 ? $"{(int)duration.TotalHours} h {duration.Minutes:00}" : $"{(int)duration.TotalHours} h";
         }
 
         return duration.TotalMinutes >= 1 ? $"{(int)duration.TotalMinutes} min" : $"{duration.Seconds} s";
@@ -648,15 +798,23 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void UpdateTrayTooltip()
     {
-        TrayTooltip = _services.Session.RemainingTime is { } remaining && IsSessionRunning
-            ? Strings.Format(Strings.Tray_Tip_Active, FormatDuration(remaining))
+        TrayTooltip = IsSessionRunning && _services.Session.RemainingTime is TimeSpan remaining
+            ? Strings.Format(Strings.Tray_Tip_Active, FormatShort(remaining))
             : Strings.Tray_Tip_Inactive;
+    }
+
+    private void ReportOnce(string key, string message, LogLevel level)
+    {
+        if (_reportedOnce.Add(key))
+        {
+            _services.Log.Write(level, message);
+        }
     }
 
     private void AppendJournal(LogEntry entry)
     {
         _journal.Add(entry);
-        while (_journal.Count > 500)
+        while (_journal.Count > JournalCapacity)
         {
             _journal.RemoveAt(0);
         }
@@ -669,5 +827,25 @@ public sealed partial class MainViewModel : ObservableObject
     private static void ShowMessage(string message, string title)
         => MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
 
-    partial void OnIsSessionRunningChanged(bool value) => OnPropertyChanged(nameof(OptionsEnabled));
+    partial void OnIsSessionRunningChanged(bool value)
+    {
+        OnPropertyChanged(nameof(OptionsEnabled));
+        OnPropertyChanged(nameof(LockOptionEnabled));
+    }
+
+    partial void OnModernStandbyCompatibilityChanged(bool value)
+    {
+        if (value)
+        {
+            LockOnLidClose = true;
+        }
+
+        OnPropertyChanged(nameof(LockOptionEnabled));
+    }
+
+    partial void OnClaudeAvailableChanged(bool value) => OnPropertyChanged(nameof(CanLaunchClaude));
+
+    partial void OnIsLaunchingChanged(bool value) => OnPropertyChanged(nameof(CanLaunchClaude));
+
+    partial void OnProjectFolderChanged(string value) => LocateClaude();
 }

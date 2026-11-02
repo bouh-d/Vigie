@@ -34,11 +34,13 @@ public sealed class TrayIcon : IDisposable
         _notifyIcon.DoubleClick += (_, _) => _window.RestoreFromTray();
 
         _viewModel.PropertyChanged += OnViewModelChanged;
+        _viewModel.NotificationRequested += OnNotificationRequested;
     }
 
     public void Dispose()
     {
         _viewModel.PropertyChanged -= OnViewModelChanged;
+        _viewModel.NotificationRequested -= OnNotificationRequested;
         _notifyIcon.Visible = false;
         _notifyIcon.Dispose();
     }
@@ -64,6 +66,9 @@ public sealed class TrayIcon : IDisposable
         menu.Items.Add(Strings.Tray_Quit, image: null, (_, _) => _viewModel.QuitCommand.Execute(null));
         return menu;
     }
+
+    private void OnNotificationRequested(object? sender, string message)
+        => _notifyIcon.ShowBalloonTip(10_000, Strings.AppTitle, message, Forms.ToolTipIcon.Warning);
 
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
     {

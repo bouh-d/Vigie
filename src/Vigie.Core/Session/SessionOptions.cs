@@ -46,10 +46,6 @@ public sealed record SessionOptions
 
     public bool LocksOnLidClose => LockOnLidClose || ModernStandbyCompatibility;
 
-    /// <summary>The Claude Code process the "until the task finishes" mode
-    /// follows, when that mode is chosen.</summary>
-    public int? TrackedProcessId { get; init; }
-
     /// <summary>The ceiling a fixed session, or the cap of a task session, runs for.</summary>
     public TimeSpan EffectiveCeiling => DurationKind == SessionDurationKind.UntilTask ? TaskModeCap : FixedDuration;
 

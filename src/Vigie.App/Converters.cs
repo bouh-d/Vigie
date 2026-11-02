@@ -14,13 +14,17 @@ public sealed class EnumToBooleanConverter : IValueConverter
         => value is true && parameter is not null ? Enum.Parse(targetType, parameter.ToString()!) : Binding.DoNothing;
 }
 
+/// <summary>Shows an element when the value is true, or when it is false with
+/// the <c>Invert</c> parameter.</summary>
 public sealed class BooleanToVisibilityConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-        => value is true ? Visibility.Visible : Visibility.Collapsed;
+        => (value is true) != IsInverted(parameter) ? Visibility.Visible : Visibility.Collapsed;
 
-    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-        => value is Visibility.Visible;
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => (value is Visibility.Visible) != IsInverted(parameter);
+
+    private static bool IsInverted(object? parameter) => parameter is "Invert";
 }
 
 public sealed class InverseBooleanConverter : IValueConverter

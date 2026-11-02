@@ -23,8 +23,10 @@
   <data name="Duration_4h" xml:space="preserve"><value>4 h</value></data>
   <data name="Duration_Custom" xml:space="preserve"><value>Autre</value></data>
   <data name="Duration_CustomUnit" xml:space="preserve"><value>min</value></data>
-  <data name="Duration_UntilTask" xml:space="preserve"><value>Jusqu'à la fin de la tâche Claude Code</value></data>
-  <data name="Duration_UntilTaskCap" xml:space="preserve"><value>({0} maximum)</value></data>
+  <data name="Duration_CustomName" xml:space="preserve"><value>Durée personnalisée, en minutes</value></data>
+  <data name="Duration_UntilTask" xml:space="preserve"><value>Jusqu'à la fin de la tâche Claude Code, au plus</value></data>
+  <data name="Duration_CapUnit" xml:space="preserve"><value>h</value></data>
+  <data name="Duration_CapName" xml:space="preserve"><value>Plafond du mode fin de tâche, en heures</value></data>
   <data name="Opt_LidClosed" xml:space="preserve"><value>Fonctionner capot fermé</value></data>
   <data name="Opt_KeepDisplay" xml:space="preserve"><value>Garder l'écran allumé</value></data>
   <data name="Opt_LockOnLid" xml:space="preserve"><value>Verrouiller à la fermeture du capot</value></data>
@@ -32,6 +34,8 @@
   <data name="Opt_BatteryStopPrefix" xml:space="preserve"><value>Arrêter sous</value></data>
   <data name="Opt_BatteryStopSuffix" xml:space="preserve"><value>% de batterie</value></data>
   <data name="Opt_LidClosedNote" xml:space="preserve"><value>Capot fermé, posez l'ordinateur sur une surface dure et dégagée. Ne le rangez pas dans un sac pendant une session.</value></data>
+  <data name="Opt_Advanced" xml:space="preserve"><value>Options avancées</value></data>
+  <data name="Opt_ModernStandbyCompat" xml:space="preserve"><value>Compatibilité Modern Standby</value></data>
   <data name="Btn_Start" xml:space="preserve"><value>Démarrer</value></data>
   <data name="Btn_Stop" xml:space="preserve"><value>Arrêter</value></data>
   <data name="Claude_Folder" xml:space="preserve"><value>Dossier</value></data>
@@ -43,6 +47,7 @@
   <data name="Claude_Permissions" xml:space="preserve"><value>Permissions</value></data>
   <data name="Claude_Args" xml:space="preserve"><value>Arguments</value></data>
   <data name="Claude_TrackTarget" xml:space="preserve"><value>Tâche à suivre</value></data>
+  <data name="Claude_Processes" xml:space="preserve"><value>Processus Claude Code détectés</value></data>
   <data name="Btn_Launch" xml:space="preserve"><value>Lancer Claude Code</value></data>
   <data name="Btn_Interrupt" xml:space="preserve"><value>Interrompre</value></data>
   <data name="Perm_Default" xml:space="preserve"><value>Selon la configuration de Claude Code (recommandé)</value></data>
@@ -64,53 +69,65 @@
   <data name="Claude_Running_Many" xml:space="preserve"><value>En cours — {0} processus</value></data>
   <data name="Claude_Badge_Running" xml:space="preserve"><value>En cours ({0})</value></data>
   <data name="Claude_Badge_Idle" xml:space="preserve"><value>Inactif</value></data>
+  <data name="Claude_Badge_Done" xml:space="preserve"><value>Terminé</value></data>
+  <data name="Claude_Badge_Error" xml:space="preserve"><value>En erreur</value></data>
   <data name="Claude_Done_Success" xml:space="preserve"><value>Terminé — réussi en {0}, {1} tours, {2} actions refusées</value></data>
   <data name="Claude_Done_Interrupted" xml:space="preserve"><value>Terminé — interrompu par vous</value></data>
   <data name="Claude_Done_External" xml:space="preserve"><value>Terminé — code de sortie {0}</value></data>
+  <data name="Claude_Done_Unknown" xml:space="preserve"><value>Terminé</value></data>
   <data name="Claude_Error" xml:space="preserve"><value>En erreur — code {0} : {1}</value></data>
   <data name="Claude_Error_Unexpected" xml:space="preserve"><value>En erreur — arrêt inattendu</value></data>
-  <data name="Claude_Retry" xml:space="preserve"><value>connexion instable (tentative {0} sur {1})</value></data>
+  <data name="Claude_Retry" xml:space="preserve"><value>En cours — connexion instable (tentative {0} sur {1})</value></data>
   <data name="Claude_ProcessLine" xml:space="preserve"><value>PID {0} · {1} · depuis {2}</value></data>
   <data name="Claude_OriginVigie" xml:space="preserve"><value>lancé par Vigie</value></data>
   <data name="Claude_OriginExternal" xml:space="preserve"><value>externe</value></data>
+  <data name="Claude_Missing" xml:space="preserve"><value>Claude Code est introuvable sur ce PC.</value></data>
+  <data name="Claude_InstallLinkText" xml:space="preserve"><value>Page d'installation de Claude Code</value></data>
+  <data name="Claude_InstallUrl" xml:space="preserve"><value>https://code.claude.com/docs/en/setup</value></data>
   <data name="Warn_Battery" xml:space="preserve"><value>Sur batterie : capot fermé, l'autonomie baisse vite et l'ordinateur chauffe. Branchez-le si possible.</value></data>
   <data name="Warn_ModernStandbyBattery" xml:space="preserve"><value>Sur batterie, Windows interrompt les demandes de maintien en éveil 5 minutes après le délai de mise en veille. Vigie désactive la mise en veille automatique sur batterie pendant la session, puis la rétablit.</value></data>
   <data name="Warn_LidUnmanaged" xml:space="preserve"><value>L'action du capot est imposée par votre organisation : Vigie ne peut pas la modifier. Gardez le capot ouvert.</value></data>
+  <data name="Warn_LidNotChanged" xml:space="preserve"><value>Vigie n'a pas pu modifier l'action du capot. Gardez le capot ouvert.</value></data>
   <data name="Warn_RequestsBlocked" xml:space="preserve"><value>Votre organisation empêche les applications de bloquer la mise en veille. Vigie ne peut pas garder ce PC éveillé.</value></data>
   <data name="Warn_SleepDetected" xml:space="preserve"><value>Le PC a été en veille de {0} à {1} ({2}). Claude Code était suspendu pendant ce temps.</value></data>
   <data name="Warn_BatteryThreshold" xml:space="preserve"><value>Batterie à {0} % : session arrêtée, réglages d'alimentation rétablis.</value></data>
   <data name="Warn_KeepDisplay" xml:space="preserve"><value>L'écran restera allumé et la session ne se verrouillera plus automatiquement.</value></data>
   <data name="Warn_Interactive" xml:space="preserve"><value>En session interactive, Claude Code attend votre accord pour certaines actions. Capot fermé, personne ne pourra répondre. Préférez une tâche autonome.</value></data>
   <data name="Warn_RebootPending" xml:space="preserve"><value>Un redémarrage de Windows Update est en attente : il peut interrompre la tâche.</value></data>
+  <data name="Dialog_Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="Dialog_Cancel" xml:space="preserve"><value>Annuler</value></data>
   <data name="Dialog_BypassTitle" xml:space="preserve"><value>Contournement des permissions</value></data>
   <data name="Dialog_Bypass" xml:space="preserve"><value>Ce mode supprime toutes les vérifications de Claude Code. Sa documentation le réserve aux conteneurs et aux machines virtuelles isolées. Continuer ?</value></data>
-  <data name="Dialog_Continue" xml:space="preserve"><value>Continuer</value></data>
-  <data name="Dialog_Cancel" xml:space="preserve"><value>Annuler</value></data>
   <data name="Dialog_CloseTitle" xml:space="preserve"><value>Session active</value></data>
   <data name="Dialog_Close" xml:space="preserve"><value>Une session d'éveil est active.</value></data>
   <data name="Dialog_Close_ClaudeRunning" xml:space="preserve"><value>Claude Code continuera, mais le PC pourra se mettre en veille.</value></data>
   <data name="Dialog_Minimize" xml:space="preserve"><value>Réduire dans la zone de notification</value></data>
   <data name="Dialog_StopQuit" xml:space="preserve"><value>Arrêter la session et quitter</value></data>
   <data name="Dialog_RequestsBlockedTitle" xml:space="preserve"><value>Démarrage impossible</value></data>
+  <data name="Dialog_StartFailed" xml:space="preserve"><value>La session n'a pas pu démarrer : {0}</value></data>
+  <data name="Dialog_UnrestoredJournal" xml:space="preserve"><value>Une session précédente a laissé des réglages d'alimentation qui n'ont pas pu être rétablis. Lancez « Vigie.exe --restore » ou suivez la procédure manuelle du README, puis réessayez.</value></data>
+  <data name="Dialog_InvalidOptions" xml:space="preserve"><value>Vérifiez les options : durée de 5 minutes à 24 heures, plafond de 1 à 24 heures, seuil de batterie de 10 à 50 %.</value></data>
   <data name="Dialog_RestoredTitle" xml:space="preserve"><value>Restauration au lancement</value></data>
-  <data name="Dialog_Restored" xml:space="preserve"><value>Une session précédente ne s'est pas terminée normalement. Réglages d'alimentation rétablis : action du capot sur Veille.</value></data>
+  <data name="Dialog_Restored" xml:space="preserve"><value>Une session précédente ne s'est pas terminée normalement. Réglages d'alimentation rétablis : {0}.</value></data>
   <data name="Dialog_JournalUnreadableTitle" xml:space="preserve"><value>Journal de restauration illisible</value></data>
   <data name="Dialog_JournalUnreadable" xml:space="preserve"><value>Le journal de restauration n'a pas pu être lu ; aucun réglage n'a été modifié automatiquement. Son contenu brut est affiché ci-dessous. Si l'action du capot doit être rétablie, suivez la procédure manuelle du README.</value></data>
   <data name="Tip_LidClosed" xml:space="preserve"><value>Pendant la session, l'action « fermeture du capot » passe à « Ne rien faire », puis reprend sa valeur d'origine.</value></data>
-  <data name="Tip_KeepDisplay" xml:space="preserve"><value>Empêche l'extinction de l'écran et, avec elle, le verrouillage automatique par inactivité.</value></data>
   <data name="Tip_LockOnLid" xml:space="preserve"><value>Verrouille la session Windows dès que le capot est fermé.</value></data>
   <data name="Tip_SuspendAtEnd" xml:space="preserve"><value>À la fin de la session, si le capot est fermé et personne n'est présent, met le PC en veille.</value></data>
   <data name="Tip_BatteryStop" xml:space="preserve"><value>Arrête la session et rétablit les réglages d'alimentation si la batterie descend sous ce seuil.</value></data>
   <data name="Tip_Autonomous" xml:space="preserve"><value>Mode recommandé capot fermé : Claude Code s'exécute sans demander d'autorisation interactive.</value></data>
-  <data name="Claude_NotFound" xml:space="preserve"><value>Claude Code est introuvable. Installez-le, puis indiquez son chemin dans les réglages.</value></data>
-  <data name="Claude_NotFoundLink" xml:space="preserve"><value>https://code.claude.com/docs/en/setup</value></data>
+  <data name="Tip_ModernStandbyCompat" xml:space="preserve"><value>Pour les portables qui se mettent en veille quand l'écran s'éteint malgré la demande de maintien en éveil : l'affichage reste actif tant que le capot est fermé, et la session se verrouille à la fermeture du capot.</value></data>
+  <data name="Claude_NotFound" xml:space="preserve"><value>Claude Code est introuvable. Installez-le depuis la page officielle : {0}</value></data>
   <data name="Claude_NotLoggedIn" xml:space="preserve"><value>Claude Code n'est pas connecté. Lancez « claude » une fois dans un terminal pour vous connecter.</value></data>
   <data name="Claude_FolderInvalid" xml:space="preserve"><value>Le dossier de projet est introuvable ou illisible.</value></data>
-  <data name="Claude_CheckFailed" xml:space="preserve"><value>Impossible de vérifier Claude Code. Réessayez ou indiquez son chemin dans les réglages.</value></data>
+  <data name="Claude_CheckFailed" xml:space="preserve"><value>Impossible de vérifier Claude Code. Réessayez ou relancez-le dans un terminal pour voir l'erreur.</value></data>
+  <data name="Claude_TargetGone" xml:space="preserve"><value>La tâche Claude Code à suivre n'est plus en cours. Choisissez-en une autre ou une durée fixe.</value></data>
+  <data name="Claude_ArgumentsInvalid" xml:space="preserve"><value>Les arguments supplémentaires contiennent un guillemet non fermé.</value></data>
+  <data name="Claude_ArgumentReserved" xml:space="preserve"><value>L'argument « {0} » est déjà géré par Vigie et ne peut pas être ajouté.</value></data>
+  <data name="Claude_PromptRequired" xml:space="preserve"><value>Saisissez un prompt pour lancer une tâche autonome.</value></data>
   <data name="Tray_Show" xml:space="preserve"><value>Afficher</value></data>
   <data name="Tray_StopSession" xml:space="preserve"><value>Arrêter la session</value></data>
   <data name="Tray_Quit" xml:space="preserve"><value>Quitter</value></data>
   <data name="Tray_Tip_Active" xml:space="preserve"><value>Vigie — éveil actif, {0} restantes</value></data>
   <data name="Tray_Tip_Inactive" xml:space="preserve"><value>Vigie — inactif</value></data>
-  <data name="Link_InstallNotLoggedIn" xml:space="preserve"><value>Lancez « claude » dans un terminal pour vous connecter.</value></data>
 </root>

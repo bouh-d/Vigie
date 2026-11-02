@@ -20,9 +20,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Windows Forms is used only for the tray icon; drop its global using so
-         the shared type names (Application, Button) resolve to WPF. -->
+    <!-- Windows Forms is used only for the tray icon; drop its global usings so
+         the type names it shares with WPF (Application, Button, Color, Size)
+         resolve to WPF. -->
     <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
   </ItemGroup>
 
   <ItemGroup>

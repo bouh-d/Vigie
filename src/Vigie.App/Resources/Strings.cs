@@ -5,7 +5,7 @@ namespace Vigie.App.Resources;
 
 /// <summary>
 /// Typed access to the French interface strings in <c>Strings.resx</c>. Values
-/// with placeholders are format strings, applied with <see cref="string.Format(IFormatProvider, string, object?[])"/>.
+/// with placeholders are format strings, applied with <see cref="Format"/>.
 /// </summary>
 public static class Strings
 {
@@ -53,9 +53,13 @@ public static class Strings
 
     public static string Duration_CustomUnit => Get("Duration_CustomUnit");
 
+    public static string Duration_CustomName => Get("Duration_CustomName");
+
     public static string Duration_UntilTask => Get("Duration_UntilTask");
 
-    public static string Duration_UntilTaskCap => Get("Duration_UntilTaskCap");
+    public static string Duration_CapUnit => Get("Duration_CapUnit");
+
+    public static string Duration_CapName => Get("Duration_CapName");
 
     public static string Opt_LidClosed => Get("Opt_LidClosed");
 
@@ -70,6 +74,10 @@ public static class Strings
     public static string Opt_BatteryStopSuffix => Get("Opt_BatteryStopSuffix");
 
     public static string Opt_LidClosedNote => Get("Opt_LidClosedNote");
+
+    public static string Opt_Advanced => Get("Opt_Advanced");
+
+    public static string Opt_ModernStandbyCompat => Get("Opt_ModernStandbyCompat");
 
     public static string Btn_Start => Get("Btn_Start");
 
@@ -92,6 +100,8 @@ public static class Strings
     public static string Claude_Args => Get("Claude_Args");
 
     public static string Claude_TrackTarget => Get("Claude_TrackTarget");
+
+    public static string Claude_Processes => Get("Claude_Processes");
 
     public static string Btn_Launch => Get("Btn_Launch");
 
@@ -135,11 +145,17 @@ public static class Strings
 
     public static string Claude_Badge_Idle => Get("Claude_Badge_Idle");
 
+    public static string Claude_Badge_Done => Get("Claude_Badge_Done");
+
+    public static string Claude_Badge_Error => Get("Claude_Badge_Error");
+
     public static string Claude_Done_Success => Get("Claude_Done_Success");
 
     public static string Claude_Done_Interrupted => Get("Claude_Done_Interrupted");
 
     public static string Claude_Done_External => Get("Claude_Done_External");
+
+    public static string Claude_Done_Unknown => Get("Claude_Done_Unknown");
 
     public static string Claude_Error => Get("Claude_Error");
 
@@ -153,11 +169,19 @@ public static class Strings
 
     public static string Claude_OriginExternal => Get("Claude_OriginExternal");
 
+    public static string Claude_Missing => Get("Claude_Missing");
+
+    public static string Claude_InstallLinkText => Get("Claude_InstallLinkText");
+
+    public static string Claude_InstallUrl => Get("Claude_InstallUrl");
+
     public static string Warn_Battery => Get("Warn_Battery");
 
     public static string Warn_ModernStandbyBattery => Get("Warn_ModernStandbyBattery");
 
     public static string Warn_LidUnmanaged => Get("Warn_LidUnmanaged");
+
+    public static string Warn_LidNotChanged => Get("Warn_LidNotChanged");
 
     public static string Warn_RequestsBlocked => Get("Warn_RequestsBlocked");
 
@@ -171,13 +195,13 @@ public static class Strings
 
     public static string Warn_RebootPending => Get("Warn_RebootPending");
 
+    public static string Dialog_Ok => Get("Dialog_Ok");
+
+    public static string Dialog_Cancel => Get("Dialog_Cancel");
+
     public static string Dialog_BypassTitle => Get("Dialog_BypassTitle");
 
     public static string Dialog_Bypass => Get("Dialog_Bypass");
-
-    public static string Dialog_Continue => Get("Dialog_Continue");
-
-    public static string Dialog_Cancel => Get("Dialog_Cancel");
 
     public static string Dialog_CloseTitle => Get("Dialog_CloseTitle");
 
@@ -191,6 +215,12 @@ public static class Strings
 
     public static string Dialog_RequestsBlockedTitle => Get("Dialog_RequestsBlockedTitle");
 
+    public static string Dialog_StartFailed => Get("Dialog_StartFailed");
+
+    public static string Dialog_UnrestoredJournal => Get("Dialog_UnrestoredJournal");
+
+    public static string Dialog_InvalidOptions => Get("Dialog_InvalidOptions");
+
     public static string Dialog_RestoredTitle => Get("Dialog_RestoredTitle");
 
     public static string Dialog_Restored => Get("Dialog_Restored");
@@ -201,8 +231,6 @@ public static class Strings
 
     public static string Tip_LidClosed => Get("Tip_LidClosed");
 
-    public static string Tip_KeepDisplay => Get("Tip_KeepDisplay");
-
     public static string Tip_LockOnLid => Get("Tip_LockOnLid");
 
     public static string Tip_SuspendAtEnd => Get("Tip_SuspendAtEnd");
@@ -211,15 +239,23 @@ public static class Strings
 
     public static string Tip_Autonomous => Get("Tip_Autonomous");
 
-    public static string Claude_NotFound => Get("Claude_NotFound");
+    public static string Tip_ModernStandbyCompat => Get("Tip_ModernStandbyCompat");
 
-    public static string Claude_NotFoundLink => Get("Claude_NotFoundLink");
+    public static string Claude_NotFound => Get("Claude_NotFound");
 
     public static string Claude_NotLoggedIn => Get("Claude_NotLoggedIn");
 
     public static string Claude_FolderInvalid => Get("Claude_FolderInvalid");
 
     public static string Claude_CheckFailed => Get("Claude_CheckFailed");
+
+    public static string Claude_TargetGone => Get("Claude_TargetGone");
+
+    public static string Claude_ArgumentsInvalid => Get("Claude_ArgumentsInvalid");
+
+    public static string Claude_ArgumentReserved => Get("Claude_ArgumentReserved");
+
+    public static string Claude_PromptRequired => Get("Claude_PromptRequired");
 
     public static string Tray_Show => Get("Tray_Show");
 
@@ -230,8 +266,6 @@ public static class Strings
     public static string Tray_Tip_Active => Get("Tray_Tip_Active");
 
     public static string Tray_Tip_Inactive => Get("Tray_Tip_Inactive");
-
-    public static string Link_InstallNotLoggedIn => Get("Link_InstallNotLoggedIn");
 
     private static string Get(string name) => Manager.GetString(name, CultureInfo.CurrentUICulture) ?? name;
 }
