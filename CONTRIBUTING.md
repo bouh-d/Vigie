@@ -2,9 +2,10 @@
 
 ## Build and test
 
-Vigie targets .NET 10 and builds on Windows. The core library and its tests
-also build and run on Linux and macOS through `EnableWindowsTargeting`, which is
-how continuous integration can run the unit tests without a Windows desktop.
+Vigie targets .NET 10 and builds on Windows. The whole solution also builds on
+Linux through `EnableWindowsTargeting`, and the unit tests run there, which is
+convenient when you do not have a Windows machine at hand. Continuous
+integration runs on Windows.
 
 ```bash
 dotnet build Vigie.sln -c Release
@@ -14,9 +15,15 @@ dotnet format Vigie.sln --verify-no-changes
 
 The unit tests never call a real power, process or clock API: `IPowerApi`,
 `IProcessApi`, `IClock` and the other platform interfaces are replaced with
-in-memory fakes. Anything that can only be checked on real hardware — lid close,
-sleep, battery behaviour — belongs in the manual test plan in
-[docs/TESTS.md](docs/TESTS.md), not in an automated test.
+in-memory fakes.
+
+`tests/e2e/restore-checks.ps1` drives the published executable on a real Windows
+desktop and checks that the power settings come back after Stop and after Vigie
+is killed. CI runs it on every push. It changes the lid action of the active power
+scheme, so only run it yourself on a machine you do not mind changing.
+
+Anything that needs real hardware — lid close, sleep, battery behaviour — belongs
+in the manual test plan in [docs/TESTS.md](docs/TESTS.md).
 
 ## Project layout
 

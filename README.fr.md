@@ -69,6 +69,11 @@ SDK .NET 10.
 La tâche autonome est le mode recommandé capot fermé : une session interactive
 peut s'arrêter pour demander une autorisation, sans personne pour répondre.
 
+Si votre portable se met en veille quand l'écran s'éteint malgré la session,
+cochez **Compatibilité Modern Standby** dans **Options avancées**. Vigie garde
+alors aussi l'affichage actif tant que le capot est fermé, et verrouille toujours
+la session à la fermeture du capot.
+
 ## Ce que Vigie modifie, et comment elle le rétablit
 
 Pendant une session, Vigie modifie au plus trois valeurs du mode d'alimentation,
@@ -115,8 +120,8 @@ powercfg /setactive SCHEME_CURRENT
 2. Supprimez le dossier de l'application et `%LOCALAPPDATA%\Vigie`.
 
 Vigie n'installe aucun service, pilote ou tâche planifiée. La seule entrée de
-démarrage utilisée est une valeur `RunOnce` sous `HKCU`, créée au début d'une
-session et supprimée une fois les réglages rétablis.
+démarrage utilisée est une valeur `RunOnce` sous `HKCU`, créée quand une session
+modifie un réglage d'alimentation et supprimée une fois les réglages rétablis.
 
 ## Confidentialité
 

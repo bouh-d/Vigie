@@ -77,7 +77,7 @@ and it would lose the user's changes if they edited the scheme mid-session.
 3. **Unhandled exceptions** — the dispatcher, app-domain and task-scheduler
    handlers restore, then let the process terminate.
 4. **A watchdog process** — `Vigie.exe --watchdog <pid> <start>`, started without
-   a window at the beginning of each session. It waits for the Vigie instance to
+   a window when a session changes a setting. It waits for the Vigie instance to
    exit and restores if the journal is still `Applied`; it exits by itself on a
    clean end, signalled through a named event.
 5. **The next launch** of Vigie.
@@ -85,7 +85,13 @@ and it would lose the user's changes if they edited the scheme mid-session.
    which restores only if the instance named in the journal is no longer running.
 
 A manual `Vigie.exe --restore`, and the equivalent `powercfg` procedure in the
-README, cover the case where none of the above ran.
+README, cover the case where none of the above ran. A session that changes no
+setting (lid handling off, on a machine without Modern Standby) has nothing to
+restore and arms neither the watchdog nor the `RunOnce` value.
+
+A journal that cannot be read, or whose values could not all be put back, blocks
+the next session until it is dealt with: writing a new journal over it would lose
+the originals it holds.
 
 ## Degraded mode
 
@@ -95,11 +101,26 @@ awake, and shows a banner telling the user to keep the lid open. It never fights
 another program: a setting changed by a third party is re-applied once, and on a
 second change Vigie steps aside.
 
-## Deferred
+## Modern Standby compatibility
 
-The "Modern Standby compatibility" contingency in the specification — adding a
-display request while the lid is closed on machines that sleep on display-off
-despite a system request — is not enabled in this version. It depends on a
-behaviour that can only be confirmed on affected hardware, and enabling it blindly
-could keep an external display on when it should not. It is left for a change
-backed by a test on such a machine.
+Some laptops go to sleep when the screen turns off even though a "system
+required" request is held. For those, an advanced option, off by default, also
+holds a display request while the lid is closed. A display request prevents the
+idle lock as well, so with this option closing the lid always locks the session.
+With an external display connected the display stays on, which is why the
+option is opt-in.
+
+## How it is tested
+
+- Unit tests cover the logic with in-memory fakes: the journal and its
+  invariant, the restore rules, the state machine and its rollbacks, the
+  deadline across sleep, the stream-json reader, the executable checks and the
+  argument list.
+- On every push, continuous integration publishes the executable and runs it in
+  a Windows desktop session (`tests/e2e/restore-checks.ps1`): it starts a
+  session through UI Automation, checks the lid action and the power request
+  with `powercfg`, and checks that the values come back after Stop, after Vigie
+  is killed, after Vigie and the watchdog are both killed, and through the
+  sign-in command.
+- Lid close, sleep, battery and Modern Standby behaviour need a real laptop:
+  see the manual plan in [TESTS.md](TESTS.md).

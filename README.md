@@ -69,6 +69,11 @@ SDK.
 The autonomous task mode is recommended with the lid closed: an interactive
 session can stop to ask for permission, and nobody is there to answer.
 
+If your laptop goes to sleep when the screen turns off despite the session, tick
+**Compatibilité Modern Standby** under **Options avancées**. Vigie then also keeps
+the display active while the lid is closed, and always locks the session when you
+close the lid.
+
 ## What Vigie changes, and how it restores it
 
 During a session Vigie changes at most three power-scheme values, records the
@@ -112,8 +117,8 @@ powercfg /setactive SCHEME_CURRENT
 2. Delete the application folder and `%LOCALAPPDATA%\Vigie`.
 
 Vigie installs no service, driver or scheduled task. The only startup entry it
-uses is a `RunOnce` value under `HKCU`, created at the start of a session and
-removed once the settings are restored.
+uses is a `RunOnce` value under `HKCU`, created when a session changes a power
+setting and removed once the settings are restored.
 
 ## Privacy
 
