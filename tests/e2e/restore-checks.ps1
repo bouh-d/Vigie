@@ -22,6 +22,7 @@ Set-StrictMode -Version Latest
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes, System.Drawing, System.Windows.Forms
 
 $Executable = (Resolve-Path $Executable).Path
+$startedAt = Get-Date
 $journalPath = Join-Path $env:LOCALAPPDATA 'Vigie\restore.json'
 $runOnceKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce'
 $Automation = [System.Windows.Automation.AutomationElement]
@@ -104,12 +105,27 @@ function Find-Element($Parent, [string] $AutomationId) {
 
 function Open-Vigie {
     $process = Start-Process -FilePath $Executable -PassThru
+    # Windows PowerShell only keeps the exit code of a process whose handle
+    # was opened before it exited.
+    $null = $process.Handle
     $byProcess = New-Object System.Windows.Automation.PropertyCondition($Automation::ProcessIdProperty, $process.Id)
     $script:window = $null
-    Wait-Until {
-        $script:window = $Automation::RootElement.FindFirst([System.Windows.Automation.TreeScope]::Children, $byProcess)
-        $null -ne $script:window
-    } 90 'the Vigie window'
+    try {
+        Wait-Until {
+            if ($process.HasExited) {
+                throw "Vigie exited with code $($process.ExitCode) before showing its window."
+            }
+            $script:window = $Automation::RootElement.FindFirst([System.Windows.Automation.TreeScope]::Children, $byProcess)
+            $null -ne $script:window
+        } 90 'the Vigie window'
+    }
+    catch {
+        if (-not $process.HasExited) {
+            $process.Refresh()
+            Write-Host "Vigie is running in session $($process.SessionId), main window $($process.MainWindowHandle) '$($process.MainWindowTitle)'."
+        }
+        throw
+    }
 
     # A runner's screen can be smaller than the window; fit it so the whole
     # window is on screen for the screenshot.
@@ -157,6 +173,29 @@ function Save-Screenshot([string] $Path) {
     finally {
         $graphics.Dispose()
         $bitmap.Dispose()
+    }
+}
+
+function Write-Diagnostics {
+    $current = [Diagnostics.Process]::GetCurrentProcess()
+    Write-Host "This script runs in session $($current.SessionId), interactive: $([Environment]::UserInteractive)."
+
+    $log = Join-Path $env:LOCALAPPDATA 'Vigie\logs\vigie.log'
+    if (Test-Path $log) {
+        Write-Host '::group::Vigie log'
+        Get-Content $log | ForEach-Object { Write-Host $_ }
+        Write-Host '::endgroup::'
+    }
+
+    # A crash that ends the process before Vigie can log it is still recorded
+    # by the .NET runtime in the Application event log.
+    $filter = @{ LogName = 'Application'; ProviderName = '.NET Runtime', 'Application Error'; StartTime = $startedAt }
+    try { $events = @(Get-WinEvent -FilterHashtable $filter -ErrorAction Stop) }
+    catch { $events = @() }
+    if ($events.Count -gt 0) {
+        Write-Host '::group::Application event log'
+        $events | ForEach-Object { Write-Host "$($_.TimeCreated) $($_.ProviderName) $($_.Id)"; Write-Host $_.Message }
+        Write-Host '::endgroup::'
     }
 }
 
@@ -231,6 +270,10 @@ try {
     Assert-Restored 'Sign-in command'
 
     Write-Host 'All restore checks passed.'
+}
+catch {
+    Write-Diagnostics
+    throw
 }
 finally {
     # Vigie's own journal shows what it did at each step.
