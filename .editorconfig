@@ -8,8 +8,12 @@ trim_trailing_whitespace = true
 indent_style = space
 indent_size = 4
 
-[*.{csproj,props,targets,xml,resx}]
+[*.{csproj,props,targets,xml,resx,xaml}]
 indent_size = 2
+
+[*.sln]
+end_of_line = crlf
+indent_style = tab
 
 [*.{json,yml,yaml}]
 indent_size = 2

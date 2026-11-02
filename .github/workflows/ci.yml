@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -30,3 +31,33 @@ jobs:
 
       - name: Verify formatting
         run: dotnet format Vigie.sln --verify-no-changes --no-restore
+
+  # Runs the published executable in the runner's desktop session and checks
+  # that every power setting it changes comes back, including after it is
+  # killed. The lid and battery cases still need a real laptop.
+  restore-checks:
+    runs-on: windows-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Publish
+        run: >-
+          dotnet publish src/Vigie.App -c Release -r win-x64 --self-contained
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
+
+      - name: Restore checks
+        shell: powershell
+        run: ./tests/e2e/restore-checks.ps1 -Executable publish/Vigie.exe -OutputDirectory restore-checks
+
+      - name: Keep the journal and screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: restore-checks
+          path: restore-checks/
+          if-no-files-found: ignore
