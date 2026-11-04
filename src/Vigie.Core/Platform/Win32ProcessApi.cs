@@ -84,6 +84,36 @@ public sealed class Win32ProcessApi : IProcessApi
         return QueryStartTime(handle);
     }
 
+    public IReadOnlyList<ProcessParent> ListParents()
+    {
+        using SafeKernelHandle snapshot = NativeMethods.CreateToolhelp32Snapshot(NativeConstants.Th32csSnapProcess, 0);
+        if (snapshot.IsInvalid)
+        {
+            return [];
+        }
+
+        var parents = new List<ProcessParent>();
+        var entry = new ProcessEntry32 { Size = (uint)Marshal.SizeOf<ProcessEntry32>() };
+        for (bool more = NativeMethods.Process32First(snapshot, ref entry); more; more = NativeMethods.Process32Next(snapshot, ref entry))
+        {
+            parents.Add(new ProcessParent((int)entry.ProcessId, (int)entry.ParentProcessId));
+        }
+
+        return parents;
+    }
+
+    public ProcessTimes? GetTimes(int processId)
+    {
+        using SafeProcessHandle handle = OpenLimited(processId);
+        if (handle.IsInvalid
+            || !NativeMethods.GetProcessTimes(handle, out long creation, out _, out long kernel, out long user))
+        {
+            return null;
+        }
+
+        return new ProcessTimes(new DateTimeOffset(DateTime.FromFileTimeUtc(creation)), TimeSpan.FromTicks(kernel + user));
+    }
+
     public IObservedProcess? Observe(int processId)
     {
         SafeProcessHandle handle = OpenLimited(processId);

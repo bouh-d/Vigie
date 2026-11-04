@@ -33,6 +33,8 @@ internal static class NativeConstants
     public const uint Synchronize = 0x00100000;
     public const uint ProcessQueryLimitedInformation = 0x00001000;
 
+    public const uint Th32csSnapProcess = 0x00000002;
+
     public const uint WaitObject0 = 0;
     public const uint WaitTimeout = 0x00000102;
 

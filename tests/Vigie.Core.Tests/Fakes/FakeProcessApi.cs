@@ -14,6 +14,10 @@ public sealed class FakeProcessApi : IProcessApi
 
     public Dictionary<int, FakeObservedProcess> Observable { get; } = [];
 
+    public Dictionary<int, int> Parents { get; } = [];
+
+    public Dictionary<int, ProcessTimes> Times { get; } = [];
+
     public Queue<ProcessRunResult> RunResults { get; } = [];
 
     public List<IReadOnlyList<string>> Runs { get; } = [];
@@ -36,6 +40,11 @@ public sealed class FakeProcessApi : IProcessApi
         AfterStartTimeRead?.Invoke(processId);
         return started;
     }
+
+    public IReadOnlyList<ProcessParent> ListParents()
+        => Parents.Select(pair => new ProcessParent(pair.Key, pair.Value)).ToList();
+
+    public ProcessTimes? GetTimes(int processId) => Times.TryGetValue(processId, out ProcessTimes times) ? times : null;
 
     public IObservedProcess? Observe(int processId) => Observable.GetValueOrDefault(processId);
 

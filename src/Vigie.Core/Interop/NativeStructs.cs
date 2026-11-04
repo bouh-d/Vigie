@@ -28,6 +28,23 @@ internal struct LastInputInfo
     public uint TickCount;
 }
 
+// PROCESSENTRY32W. Only the identifiers are read; the image name is a fixed
+// buffer so the structure stays blittable.
+[StructLayout(LayoutKind.Sequential)]
+internal unsafe struct ProcessEntry32
+{
+    public uint Size;
+    public uint Usage;
+    public uint ProcessId;
+    public nuint DefaultHeapId;
+    public uint ModuleId;
+    public uint Threads;
+    public uint ParentProcessId;
+    public int PriorityClassBase;
+    public uint Flags;
+    public fixed char ExeFile[260];
+}
+
 [StructLayout(LayoutKind.Sequential)]
 internal struct Luid
 {

@@ -50,9 +50,13 @@ public static class ClaudeNarration
 
     public static string ExternalExited(ExternalExit exit)
     {
+        string origin = exit.Process.Origin == ClaudeProcessOrigin.DesktopApp ? "Claude app" : "external";
         string code = exit.ExitCode is int value ? $" with code {value}" : string.Empty;
-        return $"Claude Code (PID {exit.Process.ProcessId}, external) exited{code}.";
+        return $"Claude Code (PID {exit.Process.ProcessId}, {origin}) exited{code}.";
     }
+
+    public static string TaskIdle(int processId)
+        => $"Claude Code (PID {processId}) has done nothing for {(int)ClaudeProcessMonitor.TaskIdleLimit.TotalMinutes} min: the task counts as finished.";
 
     public static string CandidateRejected(RejectedCandidate candidate) => candidate.Reason switch
     {

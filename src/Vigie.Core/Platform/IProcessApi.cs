@@ -15,6 +15,12 @@ public interface IProcessApi
     /// with that identifier is running or it cannot be queried.</summary>
     DateTimeOffset? GetStartTimeUtc(int processId);
 
+    /// <summary>Every running process with its parent, from one snapshot.</summary>
+    IReadOnlyList<ProcessParent> ListParents();
+
+    /// <summary>Start and CPU time of a process, or null when it cannot be queried.</summary>
+    ProcessTimes? GetTimes(int processId);
+
     IObservedProcess? Observe(int processId);
 
     /// <summary>Starts a process. When <paramref name="outputSink"/> is set its

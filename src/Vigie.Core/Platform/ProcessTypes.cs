@@ -2,6 +2,13 @@ namespace Vigie.Core.Platform;
 
 public sealed record ProcessEntry(int ProcessId, string? ExecutablePath, DateTimeOffset? StartTimeUtc);
 
+/// <summary>A running process and the process that started it. The parent may
+/// have exited since, and its identifier been given to another process.</summary>
+public sealed record ProcessParent(int ProcessId, int ParentProcessId);
+
+/// <param name="CpuTime">Kernel and user time used so far.</param>
+public readonly record struct ProcessTimes(DateTimeOffset StartTimeUtc, TimeSpan CpuTime);
+
 public sealed record CommandLineProcessEntry(
     int ProcessId,
     string? ExecutablePath,

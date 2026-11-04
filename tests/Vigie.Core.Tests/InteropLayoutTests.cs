@@ -25,4 +25,8 @@ public class InteropLayoutTests
     [Fact]
     public void LastInputInfoMatchesTheNativeSize()
         => Assert.Equal(8, Marshal.SizeOf<LastInputInfo>());
+
+    [Fact]
+    public void ProcessEntryMatchesTheNativeSize()
+        => Assert.Equal(IntPtr.Size == 8 ? 568 : 556, Marshal.SizeOf<ProcessEntry32>());
 }

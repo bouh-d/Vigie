@@ -62,6 +62,17 @@ internal static partial class NativeMethods
     public static partial bool GetProcessTimes(SafeProcessHandle process, out long creationTime, out long exitTime, out long kernelTime, out long userTime);
 
     [LibraryImport(Kernel32, SetLastError = true)]
+    public static partial SafeKernelHandle CreateToolhelp32Snapshot(uint flags, uint processId);
+
+    [LibraryImport(Kernel32, SetLastError = true, EntryPoint = "Process32FirstW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool Process32First(SafeKernelHandle snapshot, ref ProcessEntry32 entry);
+
+    [LibraryImport(Kernel32, SetLastError = true, EntryPoint = "Process32NextW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool Process32Next(SafeKernelHandle snapshot, ref ProcessEntry32 entry);
+
+    [LibraryImport(Kernel32, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool GenerateConsoleCtrlEvent(uint ctrlEvent, uint processGroupId);
 
