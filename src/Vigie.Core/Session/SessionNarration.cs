@@ -143,6 +143,9 @@ public static class SessionNarration
     public static string RebootPending()
         => Fr("Un redémarrage de Windows Update est en attente : il peut interrompre la tâche.");
 
+    public static string SleepModel(bool modernStandby)
+        => Fr(modernStandby ? "Type de veille de ce PC : Modern Standby." : "Type de veille de ce PC : S3.");
+
     public static string ModernStandbyOnBattery()
         => Fr("Sur batterie, la mise en veille automatique est désactivée pendant la session, puis rétablie.");
 

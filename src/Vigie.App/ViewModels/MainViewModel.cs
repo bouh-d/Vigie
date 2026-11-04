@@ -48,6 +48,7 @@ public sealed partial class MainViewModel : ObservableObject
         _services = services;
         _dispatcher = dispatcher;
         _modernStandby = services.Power.IsModernStandbyAvailable();
+        services.Log.Info(SessionNarration.SleepModel(_modernStandby));
 
         Journal = new ReadOnlyObservableCollection<LogEntry>(_journal);
         Permissions = PermissionItem.All;
