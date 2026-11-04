@@ -1,10 +1,12 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Navigation;
 using Vigie.App.Dialogs;
 using Vigie.App.ViewModels;
+using Vigie.Core.Platform;
 
 namespace Vigie.App;
 
@@ -36,6 +38,29 @@ public partial class MainWindow : Window
     {
         Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
         e.Handled = true;
+    }
+
+    // The field takes the combination pressed in it. Tab still moves the focus,
+    // so the keyboard is never trapped there.
+    private void OnShortcutKeyDown(object sender, KeyEventArgs e)
+    {
+        Key key = e.Key == Key.System ? e.SystemKey : e.Key;
+        if (key == Key.Tab || ViewModel is not { } viewModel)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        if (key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt or Key.LeftShift or Key.RightShift or Key.LWin or Key.RWin)
+        {
+            return;
+        }
+
+        // ModifierKeys and the RegisterHotKey flags share their values for Alt,
+        // Ctrl and Shift; a combination with the Windows key is refused.
+        ModifierKeys held = Keyboard.Modifiers;
+        var modifiers = (held & ModifierKeys.Windows) == 0 ? (ShortcutModifiers)held : ShortcutModifiers.None;
+        viewModel.TrySetActivityShortcut(modifiers, KeyInterop.VirtualKeyFromKey(key));
     }
 
     protected override void OnSourceInitialized(EventArgs e)

@@ -17,8 +17,6 @@ public static class Strings
 
     public static string AppTitle => Get("AppTitle");
 
-    public static string Zone_Session => Get("Zone_Session");
-
     public static string Zone_Claude => Get("Zone_Claude");
 
     public static string Zone_Journal => Get("Zone_Journal");
@@ -57,6 +55,8 @@ public static class Strings
 
     public static string Duration_UntilTask => Get("Duration_UntilTask");
 
+    public static string Duration_CapLabel => Get("Duration_CapLabel");
+
     public static string Duration_CapUnit => Get("Duration_CapUnit");
 
     public static string Duration_CapName => Get("Duration_CapName");
@@ -78,6 +78,36 @@ public static class Strings
     public static string Opt_Advanced => Get("Opt_Advanced");
 
     public static string Opt_ModernStandbyCompat => Get("Opt_ModernStandbyCompat");
+
+    public static string Opt_ActivityLock_Lock => Get("Opt_ActivityLock_Lock");
+
+    public static string Opt_ActivityLock_Sleep => Get("Opt_ActivityLock_Sleep");
+
+    public static string ActivityLock_Idle => Get("ActivityLock_Idle");
+
+    public static string ActivityLock_Arming => Get("ActivityLock_Arming");
+
+    public static string ActivityLock_Armed => Get("ActivityLock_Armed");
+
+    public static string ActivityLock_Disarmed => Get("ActivityLock_Disarmed");
+
+    public static string Adv_ActivityHeader => Get("Adv_ActivityHeader");
+
+    public static string Adv_Response => Get("Adv_Response");
+
+    public static string Adv_ResponseLock => Get("Adv_ResponseLock");
+
+    public static string Adv_ResponseSleep => Get("Adv_ResponseSleep");
+
+    public static string Adv_SleepNote => Get("Adv_SleepNote");
+
+    public static string Adv_Shortcut => Get("Adv_Shortcut");
+
+    public static string Adv_ShortcutName => Get("Adv_ShortcutName");
+
+    public static string Adv_ShortcutHint => Get("Adv_ShortcutHint");
+
+    public static string Adv_ShortcutInvalid => Get("Adv_ShortcutInvalid");
 
     public static string Btn_Start => Get("Btn_Start");
 
@@ -121,10 +151,6 @@ public static class Strings
 
     public static string Btn_Copy => Get("Btn_Copy");
 
-    public static string Badge_Active => Get("Badge_Active");
-
-    public static string Badge_Inactive => Get("Badge_Inactive");
-
     public static string State_Inactive => Get("State_Inactive");
 
     public static string State_Active => Get("State_Active");
@@ -140,14 +166,6 @@ public static class Strings
     public static string Claude_Running_One => Get("Claude_Running_One");
 
     public static string Claude_Running_Many => Get("Claude_Running_Many");
-
-    public static string Claude_Badge_Running => Get("Claude_Badge_Running");
-
-    public static string Claude_Badge_Idle => Get("Claude_Badge_Idle");
-
-    public static string Claude_Badge_Done => Get("Claude_Badge_Done");
-
-    public static string Claude_Badge_Error => Get("Claude_Badge_Error");
 
     public static string Claude_Done_Success => Get("Claude_Done_Success");
 
@@ -225,6 +243,8 @@ public static class Strings
 
     public static string Dialog_InvalidOptions => Get("Dialog_InvalidOptions");
 
+    public static string Dialog_ShortcutTaken => Get("Dialog_ShortcutTaken");
+
     public static string Dialog_RestoredTitle => Get("Dialog_RestoredTitle");
 
     public static string Dialog_Restored => Get("Dialog_Restored");
@@ -242,6 +262,8 @@ public static class Strings
     public static string Tip_BatteryStop => Get("Tip_BatteryStop");
 
     public static string Tip_Autonomous => Get("Tip_Autonomous");
+
+    public static string Tip_ActivityLock => Get("Tip_ActivityLock");
 
     public static string Tip_ModernStandbyCompat => Get("Tip_ModernStandbyCompat");
 
@@ -270,6 +292,10 @@ public static class Strings
     public static string Tray_Tip_Active => Get("Tray_Tip_Active");
 
     public static string Tray_Tip_Inactive => Get("Tray_Tip_Inactive");
+
+    public static string Notify_ActivityDisarmed => Get("Notify_ActivityDisarmed");
+
+    public static string Notify_ActivityRearmed => Get("Notify_ActivityRearmed");
 
     private static string Get(string name) => Manager.GetString(name, CultureInfo.CurrentUICulture) ?? name;
 }

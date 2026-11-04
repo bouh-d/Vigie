@@ -13,6 +13,21 @@ public enum DurationChoice
     UntilTask,
 }
 
+public sealed record DurationItem(DurationChoice Choice, string Display)
+{
+    public static IReadOnlyList<DurationItem> All { get; } =
+    [
+        new(DurationChoice.FifteenMinutes, Strings.Duration_15m),
+        new(DurationChoice.OneHour, Strings.Duration_1h),
+        new(DurationChoice.TwoHours, Strings.Duration_2h),
+        new(DurationChoice.FourHours, Strings.Duration_4h),
+        new(DurationChoice.Custom, Strings.Duration_Custom),
+        new(DurationChoice.UntilTask, Strings.Duration_UntilTask),
+    ];
+
+    public override string ToString() => Display;
+}
+
 /// <summary>What the Claude Code status dot shows.</summary>
 public enum ClaudeActivity
 {

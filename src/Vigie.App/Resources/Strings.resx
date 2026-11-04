@@ -5,9 +5,8 @@
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <data name="AppTitle" xml:space="preserve"><value>Vigie</value></data>
-  <data name="Zone_Session" xml:space="preserve"><value>SESSION D'ÉVEIL</value></data>
-  <data name="Zone_Claude" xml:space="preserve"><value>CLAUDE CODE</value></data>
-  <data name="Zone_Journal" xml:space="preserve"><value>JOURNAL</value></data>
+  <data name="Zone_Claude" xml:space="preserve"><value>Claude Code</value></data>
+  <data name="Zone_Journal" xml:space="preserve"><value>Journal</value></data>
   <data name="Power_Ac" xml:space="preserve"><value>Sur secteur</value></data>
   <data name="Power_OnBattery" xml:space="preserve"><value>Sur batterie</value></data>
   <data name="Power_Battery" xml:space="preserve"><value>Batterie {0} %</value></data>
@@ -21,10 +20,11 @@
   <data name="Duration_1h" xml:space="preserve"><value>1 h</value></data>
   <data name="Duration_2h" xml:space="preserve"><value>2 h</value></data>
   <data name="Duration_4h" xml:space="preserve"><value>4 h</value></data>
-  <data name="Duration_Custom" xml:space="preserve"><value>Autre</value></data>
+  <data name="Duration_Custom" xml:space="preserve"><value>Autre durée</value></data>
   <data name="Duration_CustomUnit" xml:space="preserve"><value>min</value></data>
   <data name="Duration_CustomName" xml:space="preserve"><value>Durée personnalisée, en minutes</value></data>
-  <data name="Duration_UntilTask" xml:space="preserve"><value>Jusqu'à la fin de la tâche Claude Code, au plus</value></data>
+  <data name="Duration_UntilTask" xml:space="preserve"><value>Jusqu'à la fin de la tâche Claude Code</value></data>
+  <data name="Duration_CapLabel" xml:space="preserve"><value>Fin de tâche Claude Code : au plus</value></data>
   <data name="Duration_CapUnit" xml:space="preserve"><value>h</value></data>
   <data name="Duration_CapName" xml:space="preserve"><value>Plafond du mode fin de tâche, en heures</value></data>
   <data name="Opt_LidClosed" xml:space="preserve"><value>Fonctionner capot fermé</value></data>
@@ -34,8 +34,23 @@
   <data name="Opt_BatteryStopPrefix" xml:space="preserve"><value>Arrêter sous</value></data>
   <data name="Opt_BatteryStopSuffix" xml:space="preserve"><value>% de batterie</value></data>
   <data name="Opt_LidClosedNote" xml:space="preserve"><value>Capot fermé, posez l'ordinateur sur une surface dure et dégagée. Ne le rangez pas dans un sac pendant une session.</value></data>
-  <data name="Opt_Advanced" xml:space="preserve"><value>Options avancées</value></data>
+  <data name="Opt_Advanced" xml:space="preserve"><value>Réglages avancés</value></data>
   <data name="Opt_ModernStandbyCompat" xml:space="preserve"><value>Compatibilité Modern Standby</value></data>
+  <data name="Opt_ActivityLock_Lock" xml:space="preserve"><value>Verrouiller si quelqu'un touche le PC</value></data>
+  <data name="Opt_ActivityLock_Sleep" xml:space="preserve"><value>Mettre en veille si quelqu'un touche le PC</value></data>
+  <data name="ActivityLock_Idle" xml:space="preserve"><value>S'arme après {1} s sans activité. {0} le désactive ou le réarme.</value></data>
+  <data name="ActivityLock_Arming" xml:space="preserve"><value>Armement dans {0} s si personne ne touche le PC ; {1} le désactive.</value></data>
+  <data name="ActivityLock_Armed" xml:space="preserve"><value>Verrou armé ; {0} le désactive.</value></data>
+  <data name="ActivityLock_Disarmed" xml:space="preserve"><value>Verrou désactivé ; {0} le réarme.</value></data>
+  <data name="Adv_ActivityHeader" xml:space="preserve"><value>Verrou d'activité</value></data>
+  <data name="Adv_Response" xml:space="preserve"><value>En cas d'activité</value></data>
+  <data name="Adv_ResponseLock" xml:space="preserve"><value>Verrouiller la session</value></data>
+  <data name="Adv_ResponseSleep" xml:space="preserve"><value>Mettre en veille</value></data>
+  <data name="Adv_SleepNote" xml:space="preserve"><value>La mise en veille suspend Claude Code jusqu'au réveil du PC.</value></data>
+  <data name="Adv_Shortcut" xml:space="preserve"><value>Raccourci</value></data>
+  <data name="Adv_ShortcutName" xml:space="preserve"><value>Raccourci du verrou d'activité</value></data>
+  <data name="Adv_ShortcutHint" xml:space="preserve"><value>Cliquez dans le champ et tapez la combinaison : deux touches parmi Ctrl, Alt et Maj, plus une lettre, un chiffre ou F1 à F24. Pendant la session, elle ne sert qu'à Vigie.</value></data>
+  <data name="Adv_ShortcutInvalid" xml:space="preserve"><value>Combinaison refusée : il faut deux touches parmi Ctrl, Alt et Maj, plus une lettre, un chiffre ou F1 à F24.</value></data>
   <data name="Btn_Start" xml:space="preserve"><value>Démarrer</value></data>
   <data name="Btn_Stop" xml:space="preserve"><value>Arrêter</value></data>
   <data name="Claude_Folder" xml:space="preserve"><value>Dossier</value></data>
@@ -57,8 +72,6 @@
   <data name="Perm_Plan" xml:space="preserve"><value>plan — analyse sans modification</value></data>
   <data name="Btn_OpenLogs" xml:space="preserve"><value>Ouvrir le dossier des journaux</value></data>
   <data name="Btn_Copy" xml:space="preserve"><value>Copier</value></data>
-  <data name="Badge_Active" xml:space="preserve"><value>Éveil actif</value></data>
-  <data name="Badge_Inactive" xml:space="preserve"><value>Inactif</value></data>
   <data name="State_Inactive" xml:space="preserve"><value>Inactif</value></data>
   <data name="State_Active" xml:space="preserve"><value>Éveil actif — {0} restantes (fin à {1})</value></data>
   <data name="State_ActiveUntilTask" xml:space="preserve"><value>Éveil actif jusqu'à la fin de la tâche (au plus tard {0})</value></data>
@@ -67,10 +80,6 @@
   <data name="Claude_Idle" xml:space="preserve"><value>Inactif — aucun processus Claude Code</value></data>
   <data name="Claude_Running_One" xml:space="preserve"><value>En cours — 1 processus</value></data>
   <data name="Claude_Running_Many" xml:space="preserve"><value>En cours — {0} processus</value></data>
-  <data name="Claude_Badge_Running" xml:space="preserve"><value>En cours ({0})</value></data>
-  <data name="Claude_Badge_Idle" xml:space="preserve"><value>Inactif</value></data>
-  <data name="Claude_Badge_Done" xml:space="preserve"><value>Terminé</value></data>
-  <data name="Claude_Badge_Error" xml:space="preserve"><value>En erreur</value></data>
   <data name="Claude_Done_Success" xml:space="preserve"><value>Terminé — réussi en {0}, {1} tours, {2} actions refusées</value></data>
   <data name="Claude_Done_Interrupted" xml:space="preserve"><value>Terminé — interrompu par vous</value></data>
   <data name="Claude_Done_External" xml:space="preserve"><value>Terminé — code de sortie {0}</value></data>
@@ -107,6 +116,7 @@
   <data name="Dialog_StartFailed" xml:space="preserve"><value>La session n'a pas pu démarrer : {0}</value></data>
   <data name="Dialog_UnrestoredJournal" xml:space="preserve"><value>Une session précédente a laissé des réglages d'alimentation qui n'ont pas pu être rétablis. Lancez « Vigie.exe --restore » ou suivez la procédure manuelle du README, puis réessayez.</value></data>
   <data name="Dialog_InvalidOptions" xml:space="preserve"><value>Vérifiez les options : durée de 5 minutes à 24 heures, plafond de 1 à 24 heures, seuil de batterie de 10 à 50 %.</value></data>
+  <data name="Dialog_ShortcutTaken" xml:space="preserve"><value>Le raccourci {0} est déjà utilisé par une autre application. Choisissez-en un autre dans les réglages avancés.</value></data>
   <data name="Dialog_RestoredTitle" xml:space="preserve"><value>Restauration au lancement</value></data>
   <data name="Dialog_Restored" xml:space="preserve"><value>Une session précédente ne s'est pas terminée normalement. Réglages d'alimentation rétablis : {0}.</value></data>
   <data name="Dialog_JournalUnreadableTitle" xml:space="preserve"><value>Journal de restauration illisible</value></data>
@@ -116,6 +126,7 @@
   <data name="Tip_SuspendAtEnd" xml:space="preserve"><value>À la fin de la session, si le capot est fermé et personne n'est présent, met le PC en veille.</value></data>
   <data name="Tip_BatteryStop" xml:space="preserve"><value>Arrête la session et rétablit les réglages d'alimentation si la batterie descend sous ce seuil.</value></data>
   <data name="Tip_Autonomous" xml:space="preserve"><value>Mode recommandé capot fermé : Claude Code s'exécute sans demander d'autorisation interactive.</value></data>
+  <data name="Tip_ActivityLock" xml:space="preserve"><value>Pendant la session, verrouille la session Windows ou met le PC en veille au premier mouvement de souris ou appui sur une touche. Vigie lit seulement l'heure de la dernière activité, jamais les touches tapées.</value></data>
   <data name="Tip_ModernStandbyCompat" xml:space="preserve"><value>Pour les portables qui se mettent en veille quand l'écran s'éteint malgré la demande de maintien en éveil : l'affichage reste actif tant que le capot est fermé, et la session se verrouille à la fermeture du capot.</value></data>
   <data name="Claude_NotFound" xml:space="preserve"><value>Claude Code est introuvable. Installez-le depuis la page officielle : {0}</value></data>
   <data name="Claude_NotLoggedIn" xml:space="preserve"><value>Claude Code n'est pas connecté. Lancez « claude » une fois dans un terminal pour vous connecter.</value></data>
@@ -130,4 +141,6 @@
   <data name="Tray_Quit" xml:space="preserve"><value>Quitter</value></data>
   <data name="Tray_Tip_Active" xml:space="preserve"><value>Vigie — éveil actif, {0} restantes</value></data>
   <data name="Tray_Tip_Inactive" xml:space="preserve"><value>Vigie — inactif</value></data>
+  <data name="Notify_ActivityDisarmed" xml:space="preserve"><value>Verrou d'activité désactivé.</value></data>
+  <data name="Notify_ActivityRearmed" xml:space="preserve"><value>Verrou d'activité réarmé : il s'arme après {0} s sans activité.</value></data>
 </root>

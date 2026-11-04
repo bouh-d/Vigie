@@ -1,22 +1,27 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Win32;
 using Vigie.App.Dialogs;
 using Vigie.App.Resources;
 using Vigie.Core.ClaudeCode;
 using Vigie.Core.Logging;
+using Vigie.Core.Platform;
 using Vigie.Core.Power;
 using Vigie.Core.Session;
+using Vigie.Core.Storage;
 
 namespace Vigie.App.ViewModels;
 
 public sealed partial class MainViewModel : ObservableObject
 {
     private static readonly TimeSpan InterruptGrace = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan ActivityPollInterval = TimeSpan.FromMilliseconds(200);
     private const int JournalCapacity = 500;
     private const long VisibleScanInterval = 3;
     private const long HiddenScanInterval = 10;
@@ -26,12 +31,14 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly AppServices _services;
     private readonly Dispatcher _dispatcher;
     private readonly DispatcherTimer _timer;
+    private readonly DispatcherTimer _activityTimer;
     private readonly HashSet<int> _vigieProcessIds = [];
     private readonly HashSet<string> _reportedOnce = [];
     private readonly ObservableCollection<LogEntry> _journal = [];
     private readonly bool _modernStandby;
 
     private PowerEventWindow? _powerWindow;
+    private GlobalShortcut? _shortcut;
     private ClaudeRun? _run;
     private ExternalExit? _lastExternalExit;
     private int? _trackedProcessId;
@@ -53,6 +60,7 @@ public sealed partial class MainViewModel : ObservableObject
         Journal = new ReadOnlyObservableCollection<LogEntry>(_journal);
         Permissions = PermissionItem.All;
         SelectedPermission = Permissions[0];
+        ApplySettings(services.Settings.Load());
 
         foreach (LogEntry entry in services.UiLog.Snapshot())
         {
@@ -63,15 +71,23 @@ public sealed partial class MainViewModel : ObservableObject
         services.Session.StateChanged += (_, _) => _dispatcher.BeginInvoke(UpdateSessionDisplay);
         services.Session.SleepDetected += (_, period) => _dispatcher.BeginInvoke(() => DisplaySleepBanner(period));
         services.Session.Stopped += (_, result) => _dispatcher.BeginInvoke(() => OnSessionStopped(result));
+        services.ActivityLock.StateChanged += (_, _) => OnActivityLockChanged();
+        SystemEvents.SessionSwitch += OnSessionSwitch;
 
         RefreshPowerStatus();
         LocateClaude();
         UpdateSessionDisplay();
         UpdateClaudeDisplay();
+        UpdateActivityLockStatus();
 
         _timer = new DispatcherTimer(DispatcherPriority.Normal, dispatcher) { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += (_, _) => OnTick();
         _timer.Start();
+
+        // Runs only while the lock is armed, so a mouse movement is answered
+        // within a fraction of a second.
+        _activityTimer = new DispatcherTimer(DispatcherPriority.Normal, dispatcher) { Interval = ActivityPollInterval };
+        _activityTimer.Tick += (_, _) => _services.ActivityLock.Poll();
     }
 
     /// <summary>A short message for the notification area, such as the
@@ -89,11 +105,10 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty]
     public partial string PowerStatusText { get; set; } = string.Empty;
 
-    [ObservableProperty]
-    public partial string SessionStateText { get; set; } = string.Empty;
+    public IReadOnlyList<DurationItem> Durations { get; } = DurationItem.All;
 
     [ObservableProperty]
-    public partial string SessionBadgeText { get; set; } = string.Empty;
+    public partial string SessionStateText { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial bool IsSessionRunning { get; set; }
@@ -132,6 +147,21 @@ public sealed partial class MainViewModel : ObservableObject
     public partial bool ModernStandbyCompatibility { get; set; }
 
     [ObservableProperty]
+    public partial bool ActivityLockEnabled { get; set; }
+
+    [ObservableProperty]
+    public partial ActivityResponse ActivityResponse { get; set; }
+
+    [ObservableProperty]
+    public partial Shortcut ActivityShortcut { get; set; } = Shortcut.Default;
+
+    [ObservableProperty]
+    public partial bool ShortcutRejected { get; set; }
+
+    [ObservableProperty]
+    public partial string ActivityLockStatusText { get; set; } = string.Empty;
+
+    [ObservableProperty]
     public partial bool IsAutonomous { get; set; } = true;
 
     [ObservableProperty]
@@ -151,9 +181,6 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     public partial string ClaudeStateText { get; set; } = string.Empty;
-
-    [ObservableProperty]
-    public partial string ClaudeBadgeText { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial ClaudeActivity ClaudeActivity { get; set; }
@@ -196,11 +223,36 @@ public sealed partial class MainViewModel : ObservableObject
 
     public bool IsClaudeRunning => _run is { HasExited: false };
 
+    public bool IsCustomDuration => SelectedDuration == DurationChoice.Custom;
+
+    public bool IsUntilTask => SelectedDuration == DurationChoice.UntilTask;
+
+    public string ActivityLockLabel => ActivityResponse == ActivityResponse.Lock ? Strings.Opt_ActivityLock_Lock : Strings.Opt_ActivityLock_Sleep;
+
+    public bool IsSleepResponse => ActivityResponse == ActivityResponse.Sleep;
+
+    public string ActivityShortcutText => ActivityShortcut.ToString();
+
     public void AttachWindow(HwndSource source)
     {
         _powerWindow = new PowerEventWindow(source);
         _powerWindow.SettingChanged += (_, broadcast) => _dispatcher.BeginInvoke(() => OnPowerBroadcast(broadcast));
         _powerWindow.Resumed += (_, _) => _dispatcher.BeginInvoke(_services.Session.OnResume);
+
+        _shortcut = new GlobalShortcut(source);
+        _shortcut.Pressed += (_, _) => _dispatcher.BeginInvoke(OnActivityShortcut);
+    }
+
+    /// <summary>Takes the combination typed in the shortcut field, if it is one
+    /// that can be registered.</summary>
+    public void TrySetActivityShortcut(ShortcutModifiers modifiers, int virtualKey)
+    {
+        var shortcut = new Shortcut(modifiers, virtualKey);
+        ShortcutRejected = !shortcut.IsValid();
+        if (!ShortcutRejected)
+        {
+            ActivityShortcut = shortcut;
+        }
     }
 
     public void SetWindowVisible(bool visible) => _windowVisible = visible;
@@ -243,7 +295,12 @@ public sealed partial class MainViewModel : ObservableObject
     public void ShutDown(StopReason reason)
     {
         _timer.Stop();
+        _activityTimer.Stop();
         _services.Session.Stop(reason);
+        SaveSettings();
+        SystemEvents.SessionSwitch -= OnSessionSwitch;
+        _shortcut?.Dispose();
+        _shortcut = null;
         _powerWindow?.Dispose();
         _powerWindow = null;
     }
@@ -254,6 +311,16 @@ public sealed partial class MainViewModel : ObservableObject
         if (!TryBuildOptions(out SessionOptions options))
         {
             ShowMessage(Strings.Dialog_InvalidOptions, Strings.AppTitle);
+            return;
+        }
+
+        SaveSettings();
+
+        // Registered before anything else, so a combination another
+        // application holds is reported while the user is still there.
+        if (ActivityLockEnabled && _shortcut?.TryRegister(ActivityShortcut) != true)
+        {
+            ShowMessage(Strings.Format(Strings.Dialog_ShortcutTaken, ActivityShortcut), Strings.Dialog_RequestsBlockedTitle);
             return;
         }
 
@@ -278,13 +345,19 @@ public sealed partial class MainViewModel : ObservableObject
 
         if (refusal is not null)
         {
+            _shortcut?.Unregister();
             ShowMessage(refusal, Strings.Dialog_RequestsBlockedTitle);
             return;
         }
 
+        if (ActivityLockEnabled)
+        {
+            _services.ActivityLock.Start(ActivityResponse, ActivityShortcut);
+        }
+
         _sessionTotal = options.EffectiveCeiling;
         ShowRebootWarning = preconditions.Policies.RebootPending;
-        ShowModernStandbyInfo = _modernStandby;
+        ShowModernStandbyInfo = _modernStandby && status.OnBattery;
         ShowBatteryWarning = status.OnBattery;
         ShowSleepBanner = false;
         UpdateDegradedBanner(result.Degraded);
@@ -422,6 +495,12 @@ public sealed partial class MainViewModel : ObservableObject
             {
                 UpdateCountdown();
             }
+        }
+
+        if (_services.ActivityLock.State == ActivityLockState.Arming)
+        {
+            _services.ActivityLock.Poll();
+            UpdateActivityLockStatus();
         }
 
         UpdateTrayTooltip();
@@ -602,6 +681,7 @@ public sealed partial class MainViewModel : ObservableObject
             if (IsSessionRunning)
             {
                 ShowBatteryWarning = status.OnBattery;
+                ShowModernStandbyInfo = _modernStandby && status.OnBattery;
             }
         }
         else if (broadcast.Setting == PowerKnownSettings.LidSwitchStateChange)
@@ -644,8 +724,6 @@ public sealed partial class MainViewModel : ObservableObject
     private void UpdateSessionDisplay()
     {
         IsSessionRunning = _services.Session.IsRunning;
-        SessionBadgeText = IsSessionRunning ? Strings.Badge_Active : Strings.Badge_Inactive;
-
         if (!IsSessionRunning)
         {
             SessionStateText = _services.Session.State == SessionState.Stopping ? Strings.State_Stopping : Strings.State_Inactive;
@@ -689,6 +767,8 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void OnSessionStopped(StopResult result)
     {
+        _services.ActivityLock.Stop();
+        _shortcut?.Unregister();
         ShowBatteryWarning = false;
         ShowModernStandbyInfo = false;
         ShowRebootWarning = false;
@@ -750,14 +830,6 @@ public sealed partial class MainViewModel : ObservableObject
             ClaudeStateText = Strings.Claude_Idle;
             ClaudeActivity = ClaudeActivity.Idle;
         }
-
-        ClaudeBadgeText = ClaudeActivity switch
-        {
-            ClaudeActivity.Running => Strings.Format(Strings.Claude_Badge_Running, Math.Max(running, 1)),
-            ClaudeActivity.Done => Strings.Claude_Badge_Done,
-            ClaudeActivity.Error => Strings.Claude_Badge_Error,
-            _ => Strings.Claude_Badge_Idle,
-        };
     }
 
     private static string DescribeRun(ClaudeRunSnapshot run, ClaudeRunOutcome outcome, int running) => outcome switch
@@ -804,6 +876,107 @@ public sealed partial class MainViewModel : ObservableObject
             : Strings.Tray_Tip_Inactive;
     }
 
+    private void OnActivityShortcut()
+    {
+        ActivityLock activityLock = _services.ActivityLock;
+        if (activityLock.State == ActivityLockState.Off)
+        {
+            return;
+        }
+
+        activityLock.OnShortcut();
+        NotificationRequested?.Invoke(
+            this,
+            activityLock.State == ActivityLockState.Disarmed
+                ? Strings.Notify_ActivityDisarmed
+                : Strings.Format(Strings.Notify_ActivityRearmed, (int)ActivityLock.QuietPeriod.TotalSeconds));
+    }
+
+    private void OnActivityLockChanged()
+    {
+        _activityTimer.IsEnabled = _services.ActivityLock.IsWatching;
+        UpdateActivityLockStatus();
+    }
+
+    private void UpdateActivityLockStatus()
+    {
+        ActivityLock activityLock = _services.ActivityLock;
+        string shortcut = ActivityShortcut.ToString();
+        ActivityLockStatusText = activityLock.State switch
+        {
+            ActivityLockState.Arming => Strings.Format(Strings.ActivityLock_Arming, (int)Math.Ceiling(activityLock.TimeUntilArmed.TotalSeconds), shortcut),
+            ActivityLockState.Armed or ActivityLockState.AwaitingShortcut => Strings.Format(Strings.ActivityLock_Armed, shortcut),
+            ActivityLockState.Disarmed => Strings.Format(Strings.ActivityLock_Disarmed, shortcut),
+            _ => Strings.Format(Strings.ActivityLock_Idle, shortcut, (int)ActivityLock.QuietPeriod.TotalSeconds),
+        };
+    }
+
+    // Raised on a system events thread, not the UI thread.
+    private void OnSessionSwitch(object? sender, SessionSwitchEventArgs e)
+    {
+        if (e.Reason == SessionSwitchReason.SessionLock)
+        {
+            _dispatcher.BeginInvoke(_services.ActivityLock.OnWorkstationLocked);
+        }
+    }
+
+    private void ApplySettings(UserSettings settings)
+    {
+        DurationChoice fixedChoice = settings.DurationMinutes switch
+        {
+            15 => DurationChoice.FifteenMinutes,
+            60 => DurationChoice.OneHour,
+            120 => DurationChoice.TwoHours,
+            240 => DurationChoice.FourHours,
+            _ => DurationChoice.Custom,
+        };
+
+        if (fixedChoice == DurationChoice.Custom)
+        {
+            CustomMinutes = settings.DurationMinutes;
+        }
+
+        SelectedDuration = settings.UntilTask ? DurationChoice.UntilTask : fixedChoice;
+        TaskCapHours = settings.TaskCapHours;
+        WorkWithLidClosed = settings.WorkWithLidClosed;
+        KeepDisplayOn = settings.KeepDisplayOn;
+        LockOnLidClose = settings.LockOnLidClose;
+        SuspendAtEnd = settings.SuspendAtEnd;
+        BatteryThreshold = settings.BatteryThresholdPercent;
+        ModernStandbyCompatibility = settings.ModernStandbyCompatibility;
+        ActivityLockEnabled = settings.ActivityLockEnabled;
+        ActivityResponse = settings.ActivityResponse;
+        ActivityShortcut = settings.ActivityShortcut;
+    }
+
+    private UserSettings CurrentSettings() => new()
+    {
+        DurationMinutes = SelectedDuration is DurationChoice.Custom or DurationChoice.UntilTask ? CustomMinutes : (int)DurationFromChoice().TotalMinutes,
+        UntilTask = SelectedDuration == DurationChoice.UntilTask,
+        TaskCapHours = TaskCapHours,
+        WorkWithLidClosed = WorkWithLidClosed,
+        KeepDisplayOn = KeepDisplayOn,
+        LockOnLidClose = LockOnLidClose,
+        SuspendAtEnd = SuspendAtEnd,
+        BatteryThresholdPercent = BatteryThreshold,
+        ModernStandbyCompatibility = ModernStandbyCompatibility,
+        ActivityLockEnabled = ActivityLockEnabled,
+        ActivityResponse = ActivityResponse,
+        ActivityShortcut = ActivityShortcut,
+    };
+
+    private void SaveSettings()
+    {
+        try
+        {
+            _services.Settings.Save(CurrentSettings());
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            _services.Log.Warning(SessionNarration.SettingsNotSaved(exception.Message));
+        }
+    }
+
     private void ReportOnce(string key, string message, LogLevel level)
     {
         if (_reportedOnce.Add(key))
@@ -842,6 +1015,24 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         OnPropertyChanged(nameof(LockOptionEnabled));
+    }
+
+    partial void OnSelectedDurationChanged(DurationChoice value)
+    {
+        OnPropertyChanged(nameof(IsCustomDuration));
+        OnPropertyChanged(nameof(IsUntilTask));
+    }
+
+    partial void OnActivityResponseChanged(ActivityResponse value)
+    {
+        OnPropertyChanged(nameof(ActivityLockLabel));
+        OnPropertyChanged(nameof(IsSleepResponse));
+    }
+
+    partial void OnActivityShortcutChanged(Shortcut value)
+    {
+        OnPropertyChanged(nameof(ActivityShortcutText));
+        UpdateActivityLockStatus();
     }
 
     partial void OnClaudeAvailableChanged(bool value) => OnPropertyChanged(nameof(CanLaunchClaude));

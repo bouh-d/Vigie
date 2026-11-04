@@ -37,6 +37,8 @@ public sealed class AppServices : IDisposable
 
         Guard = new PowerSettingsGuard(Power, JournalStore);
         Session = new SessionController(Power, Guard, CrashRecovery, Log, Clock, Environment);
+        ActivityLock = new ActivityLock(Power, new Win32Keyboard(), Log, Clock);
+        Settings = new UserSettingsStore(FileSystem, Storage.SettingsPath);
         Locator = new ClaudeCodeLocator(FileSystem, Environment);
         Preflight = new ClaudePreflight(Processes, Environment);
         Monitor = new ClaudeProcessMonitor(Processes, FileSystem, Clock);
@@ -71,6 +73,10 @@ public sealed class AppServices : IDisposable
     public PowerSettingsGuard Guard { get; }
 
     public SessionController Session { get; }
+
+    public ActivityLock ActivityLock { get; }
+
+    public UserSettingsStore Settings { get; }
 
     public ClaudeCodeLocator Locator { get; }
 
