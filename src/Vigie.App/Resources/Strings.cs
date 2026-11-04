@@ -167,6 +167,12 @@ public static class Strings
 
     public static string Claude_Running_Many => Get("Claude_Running_Many");
 
+    public static string Claude_Mixed => Get("Claude_Mixed");
+
+    public static string Claude_Waiting_One => Get("Claude_Waiting_One");
+
+    public static string Claude_Waiting_Many => Get("Claude_Waiting_Many");
+
     public static string Claude_Done_Success => Get("Claude_Done_Success");
 
     public static string Claude_Done_Interrupted => Get("Claude_Done_Interrupted");
@@ -186,6 +192,12 @@ public static class Strings
     public static string Claude_OriginVigie => Get("Claude_OriginVigie");
 
     public static string Claude_OriginExternal => Get("Claude_OriginExternal");
+
+    public static string Claude_OriginDesktop => Get("Claude_OriginDesktop");
+
+    public static string Claude_ProcessWorking => Get("Claude_ProcessWorking");
+
+    public static string Claude_ProcessIdle => Get("Claude_ProcessIdle");
 
     public static string Claude_Missing => Get("Claude_Missing");
 

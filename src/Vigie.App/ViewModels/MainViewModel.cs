@@ -42,7 +42,8 @@ public sealed partial class MainViewModel : ObservableObject
     private ClaudeRun? _run;
     private ExternalExit? _lastExternalExit;
     private int? _trackedProcessId;
-    private IReadOnlySet<int> _aliveProcessIds = new HashSet<int>();
+    private IReadOnlyDictionary<int, ClaudeProcessInfo> _aliveProcesses = new Dictionary<int, ClaudeProcessInfo>();
+    private long _sessionStartTick;
     private TimeSpan _sessionTotal;
     private bool _windowVisible = true;
     private long _tick;
@@ -356,6 +357,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         _sessionTotal = options.EffectiveCeiling;
+        _sessionStartTick = _services.Clock.TickCountMilliseconds;
         ShowRebootWarning = preconditions.Policies.RebootPending;
         ShowModernStandbyInfo = _modernStandby && status.OnBattery;
         ShowBatteryWarning = status.OnBattery;
@@ -618,12 +620,23 @@ public sealed partial class MainViewModel : ObservableObject
             return false;
         }
 
-        if (_run is { HasExited: false } run && run.ProcessId == pid)
+        bool open = _aliveProcesses.ContainsKey(pid) || (_run is { HasExited: false } run && run.ProcessId == pid);
+        if (!open)
         {
-            return true;
+            return false;
         }
 
-        return _aliveProcessIds.Contains(pid);
+        // A session that stays open after its task, such as a tab of the
+        // desktop app, ends the task by going quiet rather than by exiting.
+        if (_services.Session.IsRunning
+            && _aliveProcesses.TryGetValue(pid, out ClaudeProcessInfo? process)
+            && ClaudeProcessMonitor.TaskLooksFinished(process, _sessionStartTick, _services.Clock.TickCountMilliseconds))
+        {
+            ReportOnce($"idle|{pid}|{_sessionStartTick}", ClaudeNarration.TaskIdle(pid), LogLevel.Info);
+            return false;
+        }
+
+        return true;
     }
 
     private ClaudeInstallation? LocateClaude()
@@ -643,7 +656,13 @@ public sealed partial class MainViewModel : ObservableObject
     private void RefreshProcesses()
     {
         MonitorScan scan = _services.Monitor.Scan(_vigieProcessIds);
-        _aliveProcessIds = scan.Processes.Select(p => p.ProcessId).ToHashSet();
+        var alive = new Dictionary<int, ClaudeProcessInfo>(scan.Processes.Count);
+        foreach (ClaudeProcessInfo process in scan.Processes)
+        {
+            alive[process.ProcessId] = process;
+        }
+
+        _aliveProcesses = alive;
         if (scan.NodeScanError is { } error)
         {
             ReportOnce($"node|{error}", ClaudeNarration.NodeScanFailed(error), LogLevel.Warning);
@@ -801,24 +820,25 @@ public sealed partial class MainViewModel : ObservableObject
     private void UpdateClaudeDisplay()
     {
         CanInterruptClaude = _run is { HasExited: false };
-        int running = DetectedProcesses.Count;
+        int working = DetectedProcesses.Count(p => !p.IsIdle);
+        int idle = DetectedProcesses.Count - working;
 
         if (_run is { } run)
         {
             ClaudeRunSnapshot snapshot = run.Snapshot();
             ClaudeRunOutcome outcome = ClaudeRunClassifier.Classify(snapshot);
-            ClaudeStateText = DescribeRun(snapshot, outcome, running);
+            ClaudeStateText = DescribeRun(snapshot, outcome, working, idle);
             ClaudeActivity = outcome switch
             {
                 ClaudeRunOutcome.Running => ClaudeActivity.Running,
-                ClaudeRunOutcome.Succeeded or ClaudeRunOutcome.Interrupted => running > 0 ? ClaudeActivity.Running : ClaudeActivity.Done,
-                _ => running > 0 ? ClaudeActivity.Running : ClaudeActivity.Error,
+                ClaudeRunOutcome.Succeeded or ClaudeRunOutcome.Interrupted => working > 0 ? ClaudeActivity.Running : ClaudeActivity.Done,
+                _ => working > 0 ? ClaudeActivity.Running : ClaudeActivity.Error,
             };
         }
-        else if (running > 0)
+        else if (working + idle > 0)
         {
-            ClaudeStateText = RunningText(running);
-            ClaudeActivity = ClaudeActivity.Running;
+            ClaudeStateText = RunningText(working, idle);
+            ClaudeActivity = working > 0 ? ClaudeActivity.Running : ClaudeActivity.Idle;
         }
         else if (_lastExternalExit is { } exit)
         {
@@ -832,10 +852,10 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
-    private static string DescribeRun(ClaudeRunSnapshot run, ClaudeRunOutcome outcome, int running) => outcome switch
+    private static string DescribeRun(ClaudeRunSnapshot run, ClaudeRunOutcome outcome, int working, int idle) => outcome switch
     {
         ClaudeRunOutcome.Running when run.LastRetry is { } retry => Strings.Format(Strings.Claude_Retry, retry.Attempt, retry.MaxRetries),
-        ClaudeRunOutcome.Running => RunningText(Math.Max(running, 1)),
+        ClaudeRunOutcome.Running => RunningText(Math.Max(working, 1), idle),
         ClaudeRunOutcome.Succeeded => Strings.Format(
             Strings.Claude_Done_Success,
             FormatShort(RunDuration(run)),
@@ -846,8 +866,14 @@ public sealed partial class MainViewModel : ObservableObject
         _ => Strings.Format(Strings.Claude_Error, run.ExitCode ?? -1, run.LastErrorLine ?? run.Result?.Errors.FirstOrDefault() ?? run.Result?.Subtype ?? string.Empty),
     };
 
-    private static string RunningText(int running)
-        => running == 1 ? Strings.Claude_Running_One : Strings.Format(Strings.Claude_Running_Many, running);
+    private static string RunningText(int working, int idle) => (working, idle) switch
+    {
+        (0, 1) => Strings.Claude_Waiting_One,
+        (0, _) => Strings.Format(Strings.Claude_Waiting_Many, idle),
+        (1, 0) => Strings.Claude_Running_One,
+        (_, 0) => Strings.Format(Strings.Claude_Running_Many, working),
+        _ => Strings.Format(Strings.Claude_Mixed, working, idle),
+    };
 
     // The result's own duration is preferred: it excludes the time the
     // process spends winding down background commands.

@@ -52,16 +52,23 @@ public sealed record PermissionItem(string Display, string? Mode)
 }
 
 /// <summary>A detected Claude Code process, for the list and the task-target picker.</summary>
-public sealed record ClaudeProcessItem(int ProcessId, string Display, string Path)
+public sealed record ClaudeProcessItem(int ProcessId, string Display, string Path, bool IsIdle)
 {
     public static ClaudeProcessItem From(ClaudeProcessInfo info)
     {
-        string origin = info.Origin == ClaudeProcessOrigin.Vigie ? Strings.Claude_OriginVigie : Strings.Claude_OriginExternal;
+        string origin = info.Origin switch
+        {
+            ClaudeProcessOrigin.Vigie => Strings.Claude_OriginVigie,
+            ClaudeProcessOrigin.DesktopApp => Strings.Claude_OriginDesktop,
+            _ => Strings.Claude_OriginExternal,
+        };
         string started = info.StartTimeUtc?.ToLocalTime().ToString("HH:mm") ?? "?";
+        string state = info.IsIdle ? Strings.Claude_ProcessIdle : Strings.Claude_ProcessWorking;
         return new ClaudeProcessItem(
             info.ProcessId,
-            Strings.Format(Strings.Claude_ProcessLine, info.ProcessId, origin, started),
-            info.ExecutablePath ?? string.Empty);
+            Strings.Format(Strings.Claude_ProcessLine, info.ProcessId, origin, started, state),
+            info.ExecutablePath ?? string.Empty,
+            info.IsIdle);
     }
 
     public override string ToString() => Display;

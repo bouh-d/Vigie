@@ -78,8 +78,11 @@
   <data name="State_Stopping" xml:space="preserve"><value>Stopping…</value></data>
   <data name="State_Degraded" xml:space="preserve"><value>Awake — lid not managed</value></data>
   <data name="Claude_Idle" xml:space="preserve"><value>Idle — no Claude Code process</value></data>
-  <data name="Claude_Running_One" xml:space="preserve"><value>Running — 1 process</value></data>
-  <data name="Claude_Running_Many" xml:space="preserve"><value>Running — {0} processes</value></data>
+  <data name="Claude_Running_One" xml:space="preserve"><value>Working — 1 process</value></data>
+  <data name="Claude_Running_Many" xml:space="preserve"><value>Working — {0} processes</value></data>
+  <data name="Claude_Mixed" xml:space="preserve"><value>{0} working, {1} idle</value></data>
+  <data name="Claude_Waiting_One" xml:space="preserve"><value>Idle — 1 session waiting for a prompt</value></data>
+  <data name="Claude_Waiting_Many" xml:space="preserve"><value>Idle — {0} sessions waiting for a prompt</value></data>
   <data name="Claude_Done_Success" xml:space="preserve"><value>Done — succeeded in {0}, {1} turns, {2} actions denied</value></data>
   <data name="Claude_Done_Interrupted" xml:space="preserve"><value>Done — interrupted by you</value></data>
   <data name="Claude_Done_External" xml:space="preserve"><value>Done — exit code {0}</value></data>
@@ -87,9 +90,12 @@
   <data name="Claude_Error" xml:space="preserve"><value>Error — code {0}: {1}</value></data>
   <data name="Claude_Error_Unexpected" xml:space="preserve"><value>Error — stopped unexpectedly</value></data>
   <data name="Claude_Retry" xml:space="preserve"><value>Running — unstable connection (attempt {0} of {1})</value></data>
-  <data name="Claude_ProcessLine" xml:space="preserve"><value>PID {0} · {1} · since {2}</value></data>
+  <data name="Claude_ProcessLine" xml:space="preserve"><value>PID {0} · {1} · started {2} · {3}</value></data>
   <data name="Claude_OriginVigie" xml:space="preserve"><value>started by Vigie</value></data>
   <data name="Claude_OriginExternal" xml:space="preserve"><value>external</value></data>
+  <data name="Claude_OriginDesktop" xml:space="preserve"><value>Claude app</value></data>
+  <data name="Claude_ProcessWorking" xml:space="preserve"><value>working</value></data>
+  <data name="Claude_ProcessIdle" xml:space="preserve"><value>idle</value></data>
   <data name="Claude_Missing" xml:space="preserve"><value>Claude Code is not installed on this PC.</value></data>
   <data name="Claude_InstallLinkText" xml:space="preserve"><value>Claude Code installation page</value></data>
   <data name="Claude_InstallUrl" xml:space="preserve"><value>https://code.claude.com/docs/en/setup</value></data>
