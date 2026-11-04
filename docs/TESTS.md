@@ -58,7 +58,7 @@ Vigie with the lid closed. Then T1 and T2.
 | T9  | Press the power button during a session | On resume: sleep logged with its duration, requests recreated, timer correct |
 | T10 | Battery below the threshold | Session stopped, settings restored, notification |
 | T11 | Task mode: a normal task, then a stuck task | End 2 min after exit; stop at the cap for the stuck task |
-| T12 | "Interrompre" on an autonomous task | No process of the tree left after 15 s |
+| T12 | "Interrupt" on an autonomous task | No process of the tree left after 15 s |
 | T13 | Claude desktop app open and Claude Code in a terminal | Only Claude Code is listed |
 | T14 | Trap prompts: `" & calc & "`, `; calc`, `%PATH%` | Prompt passed through unchanged, no other program started |
 | T15 | Group policy on the lid action (gpedit.msc, Windows Pro or Enterprise) | Degraded mode, no write, banner shown |
@@ -76,7 +76,7 @@ which runs every minute; only a second change makes Vigie stop managing it.
 That is why T19 ends the session within a minute of the change.
 
 If T1 or T2 fails because the laptop sleeps when the screen turns off, tick
-**Compatibilité Modern Standby** under **Réglages avancés** and run them again.
+**Modern Standby compatibility** under **Advanced settings** and run them again.
 
 ## Coverage
 

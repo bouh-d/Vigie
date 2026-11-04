@@ -5,7 +5,7 @@ Code s'exécute, y compris capot fermé. Elle rétablit chaque réglage
 d'alimentation qu'elle modifie à la fin de la session, même après un plantage ou
 un arrêt forcé.
 
-> English version: [README.md](README.md).
+> English version: [README.md](README.md). L'interface de Vigie est en anglais.
 
 <!-- Capture d'écran : docs/screenshot.png. Les vérifications de restauration
      de l'intégration continue en prennent une pendant une session
@@ -21,7 +21,7 @@ un arrêt forcé.
 - empêcher la surchauffe dans un sac ou un espace fermé.
 
 Si le PC a dormi malgré tout, Vigie le détecte et l'écrit en clair (heure, durée,
-impact sur Claude Code) au lieu d'afficher « En cours ».
+impact sur Claude Code) au lieu d'afficher « Running ».
 
 ## Prérequis
 
@@ -59,52 +59,40 @@ SDK .NET 10.
 
 ## Utilisation
 
-La fenêtre montre ce dont une session a besoin. Claude Code, les réglages avancés
-et le journal sont repliés en dessous.
+La fenêtre montre ce dont une session a besoin. Les sections **Claude Code**,
+**Advanced settings** et **Log** sont repliées en dessous.
 
-1. Choisissez une durée : 15 minutes, 1, 2 ou 4 heures, une autre durée, ou
-   jusqu'à la fin de la tâche Claude Code.
-2. Laissez **Fonctionner capot fermé** coché pour continuer à la fermeture du
-   capot.
+1. Choisissez une durée : 15 minutes, 1, 2 ou 4 heures, une durée personnalisée,
+   ou jusqu'à la fin de la tâche Claude Code.
+2. Laissez **Keep running with the lid closed** coché.
 3. Au besoin, ouvrez **Claude Code**, renseignez un dossier de projet et un
-   prompt, choisissez **Tâche autonome**, et lancez Claude Code depuis Vigie.
-4. Appuyez sur **Démarrer**. Fermez le capot et éloignez-vous.
+   prompt, choisissez **Autonomous task**, et lancez Claude Code depuis Vigie.
+4. Appuyez sur **Start**. Fermez le capot et éloignez-vous.
 
 La tâche autonome est le mode recommandé capot fermé : une session interactive
 peut s'arrêter pour demander une autorisation, sans personne pour répondre.
 
-**Réglages avancés** regroupe les options qui changent rarement : garder l'écran
-allumé, verrouiller à la fermeture du capot, mettre en veille à la fin, le seuil
-de batterie, le plafond du mode fin de tâche, la compatibilité Modern Standby et
-le verrou d'activité. Vigie retient ces choix dans
+**Advanced settings** regroupe les autres options. Vigie garde vos choix dans
 `%LOCALAPPDATA%\Vigie\settings.json`.
 
 Si votre portable se met en veille quand l'écran s'éteint malgré la session,
-cochez **Compatibilité Modern Standby** dans **Réglages avancés**. Vigie garde
+cochez **Modern Standby compatibility** dans **Advanced settings**. Vigie garde
 alors aussi l'affichage actif tant que le capot est fermé, et verrouille toujours
 la session à la fermeture du capot.
 
 ### Verrou d'activité
 
-Cochez **Verrouiller si quelqu'un touche le PC** pour protéger un portable laissé
-ouvert pendant une session. Une fois le PC resté 15 secondes sans activité, le
-premier mouvement de souris ou appui sur une touche verrouille la session
-Windows, ou met le PC en veille si vous l'avez choisi dans **Réglages avancés**.
-Claude Code continue pendant que la session est verrouillée ; la mise en veille
-le suspend.
+Cochez **Lock if someone touches the PC** pour un portable laissé ouvert
+pendant une session. Après 15 secondes sans activité, le premier mouvement de
+souris ou appui sur une touche verrouille le PC, et Claude Code continue. Dans
+**Advanced settings**, vous pouvez choisir la mise en veille à la place : elle met
+Claude Code en pause.
 
-Un raccourci, Ctrl + Alt + V par défaut, désactive le verrou à votre retour et le
-réarme quand vous repartez. Tapez-le avant de toucher à quoi que ce soit : ses
-touches de modification laissent deux secondes pour finir la combinaison, et
-toute autre activité déclenche le verrou aussitôt. Vous pouvez choisir une autre
-combinaison dans **Réglages avancés** : deux touches parmi Ctrl, Alt et Maj, plus
-une lettre, un chiffre ou F1 à F24. Pendant une session, Windows réserve cette
-combinaison à Vigie.
-
-Le verrou se désactive quand Windows se verrouille : une touche pressée sur
-l'écran de verrouillage ne met jamais le PC en veille. Capot fermé, le clavier et
-le pavé tactile intégrés n'envoient rien, et seul un périphérique externe peut
-déclencher le verrou.
+Ctrl + Alt + V désactive le verrou à votre retour et le réactive quand vous
+repartez. Tapez-le avant de toucher à autre chose. Pour le changer, cliquez dans
+le champ du raccourci dans **Advanced settings** et tapez la nouvelle
+combinaison : deux touches parmi Ctrl, Alt et Maj (Shift), plus une lettre, un
+chiffre ou F1 à F24.
 
 ## Ce que Vigie modifie, et comment elle le rétablit
 
@@ -113,7 +101,7 @@ note les valeurs d'origine dans `%LOCALAPPDATA%\Vigie\restore.json` avant toute
 écriture, et les remet à l'identique à la fin :
 
 - l'**action à la fermeture du capot**, sur secteur et sur batterie, passe à
-  *Ne rien faire* (uniquement si « Fonctionner capot fermé » est coché et
+  *Ne rien faire* (uniquement si **Keep running with the lid closed** est coché et
   qu'aucune stratégie de groupe ne l'impose) ;
 - sur les machines Modern Standby, le **délai de mise en veille sur batterie**
   passe à *Jamais*, car Windows interrompt sinon les demandes de maintien en
@@ -123,7 +111,7 @@ Elle ne touche jamais au délai d'extinction de l'écran, au délai de veille su
 secteur, au bouton d'alimentation, à la batterie critique, à la veille prolongée
 ni au mode d'alimentation actif.
 
-Les réglages sont rétablis à la fin du minuteur, sur **Arrêter**, à la fermeture
+Les réglages sont rétablis à la fin du minuteur, sur **Stop**, à la fermeture
 de Vigie, à la fermeture de session Windows, sur exception non gérée, et — si le
 processus est tué — par un processus témoin, ou à défaut au lancement suivant ou
 à l'ouverture de session suivante.
@@ -175,11 +163,10 @@ entrée de démarrage est la valeur `RunOnce` décrite ci-dessus. Les deux exist
 pour que les réglages soient rétablis si Vigie est tuée. Aucune obfuscation,
 aucune compression d'exécutable, aucune injection de processus.
 
-Le verrou d'activité lit l'heure de la dernière saisie, comme les minuteurs
-d'inactivité de Windows, et si les touches de modification de son raccourci sont
-enfoncées. Il n'installe aucun hook clavier ou souris et n'enregistre aucune
-frappe. Son raccourci n'est enregistré par `RegisterHotKey` que pendant une
-session.
+Le verrou d'activité lit seulement l'heure de la dernière saisie et si les
+touches de modification de son raccourci sont enfoncées. Il n'installe aucun hook
+clavier ou souris et n'enregistre aucune frappe. Son raccourci n'est enregistré
+par `RegisterHotKey` que pendant une session.
 
 Projet indépendant, non affilié à Anthropic. Claude et Claude Code sont des
 marques d'Anthropic.

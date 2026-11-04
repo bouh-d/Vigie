@@ -8,17 +8,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- An activity lock: during a session, once nobody has touched the PC for 15
-  seconds, the first mouse movement or key press locks the Windows session or
-  puts the PC to sleep. A shortcut the user chooses disarms it and arms it
-  again.
+- An activity lock: during a session, after 15 seconds without activity, the
+  first mouse movement or key press locks the PC or puts it to sleep. A shortcut
+  the user chooses turns it off and on.
 - The window's choices, including the shortcut, are kept between launches.
-- The journal names the sleep model (Modern Standby or S3) at startup.
+- The log names the sleep model (Modern Standby or S3) at startup.
 
 ### Changed
 
+- The interface and the log are in English.
 - The window shows only what a session needs; Claude Code, the advanced
-  settings and the journal are folded away below it.
+  settings and the log are folded away below it.
 - The Modern Standby notice appears on battery only, where it applies.
 - The manual test plan reads the values with `powercfg /qh`, which also lists
   settings a laptop hides.

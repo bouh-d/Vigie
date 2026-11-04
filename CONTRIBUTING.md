@@ -43,8 +43,8 @@ safety nets.
 - Run `dotnet format` before committing.
 - Comments explain a *why* — a Windows constraint, a pitfall, a link to the
   Microsoft documentation — not what the next line does.
-- Interface text is French; code, identifiers, comments and commit messages are
-  English.
+- Everything is in English: interface text, log lines, code, identifiers,
+  comments and commit messages. Only `README.fr.md` is in French.
 
 ## Commits
 
