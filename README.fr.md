@@ -72,6 +72,12 @@ La fenêtre montre ce dont une session a besoin. Les sections **Claude Code**,
 La tâche autonome est le mode recommandé capot fermé : une session interactive
 peut s'arrêter pour demander une autorisation, sans personne pour répondre.
 
+La section **Claude Code** indique pour chaque processus s'il travaille
+(*working*) ou attend (*idle*). Une session qui reste ouverte après sa tâche,
+comme un onglet de l'application de bureau Claude, passe en attente après
+environ deux minutes sans activité. Quand une session d'éveil suit une telle
+tâche, la tâche compte comme terminée après 10 minutes sans activité.
+
 **Advanced settings** regroupe les autres options. Vigie garde vos choix dans
 `%LOCALAPPDATA%\Vigie\settings.json`.
 

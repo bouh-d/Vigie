@@ -110,6 +110,25 @@ idle lock as well, so with this option closing the lid always locks the session.
 With an external display connected the display stays on, which is why the
 option is opt-in.
 
+## Telling a working session from an idle one
+
+An open `claude.exe` is not a running task: a terminal session, or a tab of the
+Claude desktop app, keeps its process open while it waits for the next prompt.
+Vigie measures the CPU time of each Claude Code process and of everything it
+started (tool commands, shells), and counts as work either 0.6 s of CPU within
+30 s or a command starting or ending. Measured on a laptop, a session waiting
+for a prompt uses up to about 50 ms every 3 s; one at work, several times more.
+
+- A process shows as idle after two minutes without work. One seen for the
+  first time shows as idle once a full 30-second window has passed quietly.
+- The process tree comes from a Toolhelp snapshot. A parent identifier outlives
+  its process and can be reused, so a child older than its parent is left out.
+- The task mode ends when the followed process exits, or when it has done
+  nothing for 10 minutes. Those minutes start at the wake session's start at
+  the earliest, so a session that was already waiting gets the full limit, and
+  the two-minute grace still follows.
+- A `claude.exe` whose parent is the desktop app is labelled as such.
+
 ## The activity lock
 
 An optional lock for a laptop left open during a session: once nobody has

@@ -26,6 +26,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - The battery charge is shown on AC power as well as on battery.
+- Claude Code sessions that wait for their next prompt, such as tabs of the
+  Claude desktop app, are shown as idle instead of running. In task mode, such
+  a session counts as finished after 10 minutes without activity instead of
+  keeping the PC awake until the cap.
 
 ## [0.1.0]
 

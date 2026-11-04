@@ -70,6 +70,11 @@ the log are folded away below it.
 The autonomous task mode is recommended with the lid closed: an interactive
 session can stop to ask for permission, and nobody is there to answer.
 
+The **Claude Code** section shows each process as working or idle. A session
+that stays open after its task, such as a tab of the Claude desktop app, shows
+as idle once it has done nothing for about two minutes. When a session follows
+such a task, the task counts as finished after 10 minutes without activity.
+
 **Advanced settings** holds the other options. Vigie keeps your choices in
 `%LOCALAPPDATA%\Vigie\settings.json`.
 

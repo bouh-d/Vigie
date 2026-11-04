@@ -70,6 +70,7 @@ Vigie with the lid closed. Then T1 and T2.
 | T21 | Activity lock on, lid open: leave the PC untouched 15 s, then move the mouse | Session locked within a second, journal entry, Claude Code still running |
 | T22 | Activity lock armed: press the shortcut, use the PC, press it again, leave it 15 s | Disarmed without locking, then armed again, a notification each time |
 | T23 | Activity lock set to sleep, armed: lock Windows with Win + L, then press a key on the lock screen | The PC does not sleep |
+| T24 | Task mode on a Claude desktop app session: let its task finish and leave the tab open | Listed as idle about 2 min later; the wake session ends about 12 min after the task, with a log line naming the idle task |
 
 A value changed during a session is re-applied once at the next periodic check,
 which runs every minute; only a second change makes Vigie stop managing it.
