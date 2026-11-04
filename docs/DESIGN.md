@@ -110,12 +110,37 @@ idle lock as well, so with this option closing the lid always locks the session.
 With an external display connected the display stays on, which is why the
 option is opt-in.
 
+## The activity lock
+
+An optional lock for a laptop left open during a session: once nobody has
+touched the PC for 15 seconds, the first input locks the Windows session
+(`LockWorkStation`) or suspends the PC. It is built so that nothing about it
+resembles a keylogger:
+
+- Activity is the time of the last input (`GetLastInputInfo`), the same signal
+  Windows' idle timers use. There is no keyboard or mouse hook and no raw input.
+- The shortcut that disarms it is a `RegisterHotKey` registration on the main
+  window, made at the start of a session and removed at its end. A combination
+  another application already holds is reported before the session starts.
+- Pressing the shortcut starts with its modifier keys, which are input too. So
+  when activity begins, the lock checks (`GetAsyncKeyState`) whether one of the
+  shortcut's own modifiers is held: if so, the rest of the combination has two
+  seconds; anything else locks at once. That check is the only keyboard state
+  read.
+- A shortcut needs two of Ctrl, Alt and Shift. With a single modifier it would
+  take combinations such as Ctrl + C from every application for the length of
+  the session.
+- A Windows lock disarms it: the lock screen protects the PC by itself, and a key
+  pressed there to sign in must not suspend it. After it fires, it also stays
+  disarmed until the shortcut arms it again, so the user is not locked out a
+  second time while reading the screen after signing in.
+
 ## How it is tested
 
 - Unit tests cover the logic with in-memory fakes: the journal and its
   invariant, the restore rules, the state machine and its rollbacks, the
-  deadline across sleep, the stream-json reader, the executable checks and the
-  argument list.
+  deadline across sleep, the stream-json reader, the executable checks, the
+  argument list, the activity lock and the settings file.
 - On every push, continuous integration publishes the executable and runs it in
   a Windows desktop session (`tests/e2e/restore-checks.ps1`): it starts a
   session through UI Automation, checks the lid action and the power request

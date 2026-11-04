@@ -59,21 +59,52 @@ SDK .NET 10.
 
 ## Utilisation
 
-1. Choisissez une durée (15 minutes, 1, 2 ou 4 heures, une valeur personnalisée,
-   ou jusqu'à la fin de la tâche Claude Code).
+La fenêtre montre ce dont une session a besoin. Claude Code, les réglages avancés
+et le journal sont repliés en dessous.
+
+1. Choisissez une durée : 15 minutes, 1, 2 ou 4 heures, une autre durée, ou
+   jusqu'à la fin de la tâche Claude Code.
 2. Laissez **Fonctionner capot fermé** coché pour continuer à la fermeture du
    capot.
-3. Au besoin, renseignez un dossier de projet et un prompt, choisissez
-   **Tâche autonome**, et lancez Claude Code depuis Vigie.
+3. Au besoin, ouvrez **Claude Code**, renseignez un dossier de projet et un
+   prompt, choisissez **Tâche autonome**, et lancez Claude Code depuis Vigie.
 4. Appuyez sur **Démarrer**. Fermez le capot et éloignez-vous.
 
 La tâche autonome est le mode recommandé capot fermé : une session interactive
 peut s'arrêter pour demander une autorisation, sans personne pour répondre.
 
+**Réglages avancés** regroupe les options qui changent rarement : garder l'écran
+allumé, verrouiller à la fermeture du capot, mettre en veille à la fin, le seuil
+de batterie, le plafond du mode fin de tâche, la compatibilité Modern Standby et
+le verrou d'activité. Vigie retient ces choix dans
+`%LOCALAPPDATA%\Vigie\settings.json`.
+
 Si votre portable se met en veille quand l'écran s'éteint malgré la session,
-cochez **Compatibilité Modern Standby** dans **Options avancées**. Vigie garde
+cochez **Compatibilité Modern Standby** dans **Réglages avancés**. Vigie garde
 alors aussi l'affichage actif tant que le capot est fermé, et verrouille toujours
 la session à la fermeture du capot.
+
+### Verrou d'activité
+
+Cochez **Verrouiller si quelqu'un touche le PC** pour protéger un portable laissé
+ouvert pendant une session. Une fois le PC resté 15 secondes sans activité, le
+premier mouvement de souris ou appui sur une touche verrouille la session
+Windows, ou met le PC en veille si vous l'avez choisi dans **Réglages avancés**.
+Claude Code continue pendant que la session est verrouillée ; la mise en veille
+le suspend.
+
+Un raccourci, Ctrl + Alt + V par défaut, désactive le verrou à votre retour et le
+réarme quand vous repartez. Tapez-le avant de toucher à quoi que ce soit : ses
+touches de modification laissent deux secondes pour finir la combinaison, et
+toute autre activité déclenche le verrou aussitôt. Vous pouvez choisir une autre
+combinaison dans **Réglages avancés** : deux touches parmi Ctrl, Alt et Maj, plus
+une lettre, un chiffre ou F1 à F24. Pendant une session, Windows réserve cette
+combinaison à Vigie.
+
+Le verrou se désactive quand Windows se verrouille : une touche pressée sur
+l'écran de verrouillage ne met jamais le PC en veille. Capot fermé, le clavier et
+le pavé tactile intégrés n'envoient rien, et seul un périphérique externe peut
+déclencher le verrou.
 
 ## Ce que Vigie modifie, et comment elle le rétablit
 
@@ -115,6 +146,10 @@ powercfg /setdcvalueindex SCHEME_CURRENT SUB_SLEEP STANDBYIDLE 1200
 powercfg /setactive SCHEME_CURRENT
 ```
 
+Certains portables masquent l'action du capot dans `powercfg /q`. Pour la lire,
+`powercfg /qh SCHEME_CURRENT SUB_BUTTONS LIDACTION` affiche aussi les réglages
+masqués.
+
 ## Désinstallation
 
 1. Si une session a été interrompue, lancez `Vigie.exe --restore` une fois.
@@ -139,6 +174,12 @@ sans fenêtre lancé par Vigie est le processus témoin de restauration, et la s
 entrée de démarrage est la valeur `RunOnce` décrite ci-dessus. Les deux existent
 pour que les réglages soient rétablis si Vigie est tuée. Aucune obfuscation,
 aucune compression d'exécutable, aucune injection de processus.
+
+Le verrou d'activité lit l'heure de la dernière saisie, comme les minuteurs
+d'inactivité de Windows, et si les touches de modification de son raccourci sont
+enfoncées. Il n'installe aucun hook clavier ou souris et n'enregistre aucune
+frappe. Son raccourci n'est enregistré par `RegisterHotKey` que pendant une
+session.
 
 Projet indépendant, non affilié à Anthropic. Claude et Claude Code sont des
 marques d'Anthropic.

@@ -15,17 +15,20 @@ Note the starting values, so they can be put back by hand if anything goes
 wrong:
 
 ```powershell
-powercfg /q SCHEME_CURRENT SUB_BUTTONS LIDACTION
-powercfg /q SCHEME_CURRENT SUB_SLEEP STANDBYIDLE
+powercfg /qh SCHEME_CURRENT SUB_BUTTONS LIDACTION
+powercfg /qh SCHEME_CURRENT SUB_SLEEP STANDBYIDLE
 ```
+
+`/qh` also lists hidden settings: some laptops hide the lid action, and
+`powercfg /q` then prints nothing for it.
 
 Run T6 and T5 first: they confirm the settings come back before you rely on
 Vigie with the lid closed. Then T1 and T2.
 
 ## Verification tools
 
-- `powercfg /q SCHEME_CURRENT SUB_BUTTONS LIDACTION` and
-  `powercfg /q SCHEME_CURRENT SUB_SLEEP STANDBYIDLE` — the values before and
+- `powercfg /qh SCHEME_CURRENT SUB_BUTTONS LIDACTION` and
+  `powercfg /qh SCHEME_CURRENT SUB_SLEEP STANDBYIDLE` — the values before and
   after a session.
 - `powercfg /a` — whether the machine supports Modern Standby (an S0 low-power
   idle state is listed as available).
@@ -64,13 +67,16 @@ Vigie with the lid closed. Then T1 and T2.
 | T18 | Change the power scheme during the session | Both schemes return to their original values |
 | T19 | Change the lid value by hand during the session, then end the session within a minute | Restore does not overwrite the user's choice |
 | T20 | Close the window during a session | "Minimise / Stop and quit / Cancel" choice |
+| T21 | Activity lock on, lid open: leave the PC untouched 15 s, then move the mouse | Session locked within a second, journal entry, Claude Code still running |
+| T22 | Activity lock armed: press the shortcut, use the PC, press it again, leave it 15 s | Disarmed without locking, then armed again, a notification each time |
+| T23 | Activity lock set to sleep, armed: lock Windows with Win + L, then press a key on the lock screen | The PC does not sleep |
 
 A value changed during a session is re-applied once at the next periodic check,
 which runs every minute; only a second change makes Vigie stop managing it.
 That is why T19 ends the session within a minute of the change.
 
 If T1 or T2 fails because the laptop sleeps when the screen turns off, tick
-**Compatibilité Modern Standby** under **Options avancées** and run them again.
+**Compatibilité Modern Standby** under **Réglages avancés** and run them again.
 
 ## Coverage
 

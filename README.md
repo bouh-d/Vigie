@@ -58,21 +58,49 @@ SDK.
 
 ## Usage
 
-1. Choose a duration (15 minutes, 1, 2 or 4 hours, a custom value, or until the
-   Claude Code task finishes).
+The window shows what a session needs. Claude Code, the advanced settings and
+the journal are folded away below it.
+
+1. Choose a duration: 15 minutes, 1, 2 or 4 hours, another duration, or until
+   the Claude Code task finishes.
 2. Leave **Fonctionner capot fermé** (work with the lid closed) ticked to keep
    running when you close the lid.
-3. Optionally fill in a project folder and prompt, pick **Tâche autonome**
-   (autonomous task), and start Claude Code from Vigie.
+3. Optionally open **Claude Code**, fill in a project folder and prompt, pick
+   **Tâche autonome** (autonomous task), and start Claude Code from Vigie.
 4. Press **Démarrer** (start). Close the lid and leave.
 
 The autonomous task mode is recommended with the lid closed: an interactive
 session can stop to ask for permission, and nobody is there to answer.
 
+**Réglages avancés** (advanced settings) holds the options that rarely change:
+keeping the screen on, locking on lid close, sleeping at the end, the battery
+threshold, the cap of the task mode, Modern Standby compatibility and the
+activity lock. Vigie remembers these choices in
+`%LOCALAPPDATA%\Vigie\settings.json`.
+
 If your laptop goes to sleep when the screen turns off despite the session, tick
-**Compatibilité Modern Standby** under **Options avancées**. Vigie then also keeps
+**Compatibilité Modern Standby** under **Réglages avancés**. Vigie then also keeps
 the display active while the lid is closed, and always locks the session when you
 close the lid.
+
+### Activity lock
+
+Tick **Verrouiller si quelqu'un touche le PC** (lock if someone touches the PC)
+to protect a laptop left open during a session. Once nobody has touched it for
+15 seconds, the first mouse movement or key press locks the Windows session, or
+puts the PC to sleep if you chose that under **Réglages avancés**. Claude Code
+keeps running while the session is locked; sleep suspends it.
+
+A shortcut, Ctrl + Alt + V by default, disarms the lock when you come back and
+arms it again when you leave. Press it before touching anything else: its
+modifier keys get two seconds for the rest of the combination, and any other
+activity triggers the lock at once. You can choose another combination under
+**Réglages avancés**: two of Ctrl, Alt and Shift, plus a letter, a digit or F1
+to F24. While a session runs, Windows gives that combination to Vigie alone.
+
+The lock disarms when Windows locks, so a key pressed on the lock screen never
+puts the PC to sleep. With the lid closed, the built-in keyboard and touchpad
+send nothing, and only an external device can trigger the lock.
 
 ## What Vigie changes, and how it restores it
 
@@ -111,6 +139,9 @@ powercfg /setdcvalueindex SCHEME_CURRENT SUB_SLEEP STANDBYIDLE 1200
 powercfg /setactive SCHEME_CURRENT
 ```
 
+Some laptops hide the lid action from `powercfg /q`. To read it there,
+`powercfg /qh SCHEME_CURRENT SUB_BUTTONS LIDACTION` also lists hidden settings.
+
 ## Uninstall
 
 1. If a session was interrupted, run `Vigie.exe --restore` once.
@@ -133,6 +164,11 @@ Besides the Claude Code tasks shown in the interface, the only windowless proces
 Vigie starts is the restore watchdog, and the only startup entry is the `RunOnce`
 value described above. Both exist so the power settings are restored if Vigie is
 killed. There is no obfuscation, no executable packing and no process injection.
+
+The activity lock reads the time of the last input, as Windows' own idle timers
+do, and whether its shortcut's modifier keys are held. It installs no keyboard
+or mouse hook and records no keystroke. Its shortcut is registered with
+`RegisterHotKey` only while a session runs.
 
 This is an independent project, not affiliated with Anthropic. Claude and Claude
 Code are trademarks of Anthropic.
