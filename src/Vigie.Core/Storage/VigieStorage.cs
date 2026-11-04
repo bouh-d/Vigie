@@ -15,6 +15,8 @@ public sealed class VigieStorage(IEnvironment environment, IFileSystem fileSyste
 
     public string RestoreJournalPath => Path.Combine(Root, "restore.json");
 
+    public string SettingsPath => Path.Combine(Root, "settings.json");
+
     public string LogDirectory => Path.Combine(Root, "logs");
 
     public string LogFilePath => Path.Combine(LogDirectory, "vigie.log");

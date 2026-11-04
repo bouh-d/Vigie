@@ -174,6 +174,8 @@ public static class SessionNarration
 
     public static string ActivitySuspendFailed() => Fr("La mise en veille du PC a échoué.");
 
+    public static string SettingsNotSaved(string cause) => Fr($"Les réglages n'ont pas pu être enregistrés : {cause}");
+
     public static string RecoveryUnavailable(string cause) => Fr($"Filet de sécurité indisponible : {cause}");
 
     public static string RecoveryCleanupFailed(string cause) => Fr($"Nettoyage du filet de sécurité incomplet : {cause}");
