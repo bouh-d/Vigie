@@ -25,9 +25,9 @@ public static class Strings
 
     public static string Power_Ac => Get("Power_Ac");
 
-    public static string Power_Battery => Get("Power_Battery");
+    public static string Power_OnBattery => Get("Power_OnBattery");
 
-    public static string Power_PercentUnknown => Get("Power_PercentUnknown");
+    public static string Power_Battery => Get("Power_Battery");
 
     public static string Power_LidOpen => Get("Power_LidOpen");
 

@@ -623,14 +623,14 @@ public sealed partial class MainViewModel : ObservableObject
     private void RefreshPowerStatus()
     {
         PowerStatus status = _services.Power.GetPowerStatus();
-        var parts = new List<string>
+        var parts = new List<string> { status.OnBattery ? Strings.Power_OnBattery : Strings.Power_Ac };
+        if (status.BatteryPercent is int percent)
         {
-            status.OnBattery
-                ? (status.BatteryPercent is int percent ? Strings.Format(Strings.Power_Battery, percent) : Strings.Power_PercentUnknown)
-                : Strings.Power_Ac,
-            _lidClosed ? Strings.Power_LidClosed : Strings.Power_LidOpen,
-            _modernStandby ? Strings.Power_ModernStandby : Strings.Power_LegacySleep,
-        };
+            parts.Add(Strings.Format(Strings.Power_Battery, percent));
+        }
+
+        parts.Add(_lidClosed ? Strings.Power_LidClosed : Strings.Power_LidOpen);
+        parts.Add(_modernStandby ? Strings.Power_ModernStandby : Strings.Power_LegacySleep);
 
         if (status.BatterySaverOn)
         {

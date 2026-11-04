@@ -9,8 +9,8 @@
   <data name="Zone_Claude" xml:space="preserve"><value>CLAUDE CODE</value></data>
   <data name="Zone_Journal" xml:space="preserve"><value>JOURNAL</value></data>
   <data name="Power_Ac" xml:space="preserve"><value>Sur secteur</value></data>
+  <data name="Power_OnBattery" xml:space="preserve"><value>Sur batterie</value></data>
   <data name="Power_Battery" xml:space="preserve"><value>Batterie {0} %</value></data>
-  <data name="Power_PercentUnknown" xml:space="preserve"><value>Batterie</value></data>
   <data name="Power_LidOpen" xml:space="preserve"><value>Capot ouvert</value></data>
   <data name="Power_LidClosed" xml:space="preserve"><value>Capot fermé</value></data>
   <data name="Power_ModernStandby" xml:space="preserve"><value>Modern Standby</value></data>
