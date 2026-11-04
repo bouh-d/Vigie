@@ -36,6 +36,11 @@ internal static class NativeConstants
     public const uint WaitObject0 = 0;
     public const uint WaitTimeout = 0x00000102;
 
+    // Virtual-key codes of the modifier keys, left or right.
+    public const int VkShift = 0x10;
+    public const int VkControl = 0x11;
+    public const int VkMenu = 0x12;
+
     // AdjustTokenPrivileges / shutdown privilege.
     public const uint TokenAdjustPrivileges = 0x0020;
     public const uint TokenQuery = 0x0008;

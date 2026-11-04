@@ -149,6 +149,31 @@ public static class SessionNarration
     public static string ModernStandbyOnBattery()
         => Fr("Sur batterie, la mise en veille automatique est désactivée pendant la session, puis rétablie.");
 
+    public static string ActivityLockOn(Shortcut shortcut)
+        => Fr($"Verrou d'activité activé : il s'arme après {Duration(ActivityLock.QuietPeriod)} sans activité ; {shortcut} le désactive ou le réarme.");
+
+    public static string ActivityLockArmed(ActivityResponse response)
+        => Fr(response == ActivityResponse.Lock
+            ? "Verrou d'activité armé : au premier mouvement, la session Windows sera verrouillée."
+            : "Verrou d'activité armé : au premier mouvement, le PC sera mis en veille.");
+
+    public static string ActivityLockDisarmed(Shortcut shortcut) => Fr($"Verrou d'activité désactivé par {shortcut}.");
+
+    public static string ActivityLockRearmed()
+        => Fr($"Verrou d'activité réarmé : il s'arme après {Duration(ActivityLock.QuietPeriod)} sans activité.");
+
+    public static string ActivityLockPausedByWindowsLock(Shortcut shortcut)
+        => Fr($"Session Windows verrouillée : verrou d'activité désactivé, {shortcut} le réarme.");
+
+    public static string ActivityLocked(bool succeeded)
+        => Fr(succeeded
+            ? "Activité détectée : session Windows verrouillée."
+            : "Activité détectée, mais le verrouillage de la session Windows a échoué.");
+
+    public static string ActivitySuspending() => Fr("Activité détectée : mise en veille du PC.");
+
+    public static string ActivitySuspendFailed() => Fr("La mise en veille du PC a échoué.");
+
     public static string RecoveryUnavailable(string cause) => Fr($"Filet de sécurité indisponible : {cause}");
 
     public static string RecoveryCleanupFailed(string cause) => Fr($"Nettoyage du filet de sécurité incomplet : {cause}");

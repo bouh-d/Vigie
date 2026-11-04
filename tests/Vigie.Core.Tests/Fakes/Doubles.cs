@@ -43,6 +43,13 @@ public sealed class FakeRegistry : IRegistry
         => CurrentUserStrings.Remove((subKeyPath, valueName));
 }
 
+public sealed class FakeKeyboard : IKeyboard
+{
+    public ShortcutModifiers Held { get; set; }
+
+    public bool IsAnyDown(ShortcutModifiers modifiers) => (Held & modifiers) != 0;
+}
+
 public sealed class RecordingLog : ILog
 {
     public List<LogEntry> Entries { get; } = [];

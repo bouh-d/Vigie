@@ -111,6 +111,9 @@ internal static partial class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool GetLastInputInfo(ref LastInputInfo lastInputInfo);
 
+    [LibraryImport(User32)]
+    public static partial short GetAsyncKeyState(int virtualKey);
+
     [LibraryImport(AdvApi32, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool OpenProcessToken(nint processHandle, uint desiredAccess, out SafeKernelHandle tokenHandle);
