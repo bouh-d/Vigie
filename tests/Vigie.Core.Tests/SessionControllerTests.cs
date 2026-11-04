@@ -292,7 +292,7 @@ public class SessionControllerTests
         _controller.OnLidChanged(closed: true);
 
         Assert.True(_controller.IsRunning);
-        Assert.True(_log.Contains("verrouillage"));
+        Assert.True(_log.Contains("locking the Windows session failed"));
     }
 
     [Fact]

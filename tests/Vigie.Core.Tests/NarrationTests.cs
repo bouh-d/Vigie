@@ -1,5 +1,4 @@
 using Vigie.Core.ClaudeCode;
-using Vigie.Core.Logging;
 using Vigie.Core.Power;
 using Vigie.Core.Session;
 using Xunit;
@@ -8,16 +7,7 @@ namespace Vigie.Core.Tests;
 
 public class NarrationTests
 {
-    private const char NoBreakSpace = '\u00A0';
     private static readonly Guid Scheme = Guid.Parse("11111111-1111-1111-1111-111111111111");
-
-    [Fact]
-    public void FrenchTypographyPutsANoBreakSpaceBeforeDoublePunctuation()
-        => Assert.Equal($"Batterie{NoBreakSpace}: faible{NoBreakSpace}! «{NoBreakSpace}oui{NoBreakSpace}»", FrenchTypography.Fix("Batterie : faible ! « oui »"));
-
-    [Fact]
-    public void FrenchTypographyLeavesClockTimesAndPathsAlone()
-        => Assert.Equal(@"de 14:02 à C:\dev", FrenchTypography.Fix(@"de 14:02 à C:\dev"));
 
     [Fact]
     public void LidChangeIsJournaledWithBothValuesAndTheSources()
@@ -31,7 +21,7 @@ public class NarrationTests
 
         string line = Assert.Single(SessionNarration.Applied(report));
 
-        Assert.Equal($"Action du capot{NoBreakSpace}: Veille → Ne rien faire (secteur, batterie).", line);
+        Assert.Equal("Lid action: Sleep → Do nothing (AC, battery).", line);
     }
 
     [Fact]
@@ -42,15 +32,15 @@ public class NarrationTests
             [],
             Complete: true);
 
-        Assert.Equal("action du capot sur Veille prolongée", SessionNarration.RestoredSummary(report));
+        Assert.Equal("lid action set to Hibernate", SessionNarration.RestoredSummary(report));
     }
 
     [Fact]
-    public void ASuccessfulResultReportsTurnsDenialsAndCostInFrenchNotation()
+    public void ASuccessfulResultReportsTurnsDenialsAndCost()
     {
         var result = new ResultEvent("success", IsError: false, NumTurns: 8, TotalCostUsd: 0.1234m, PermissionDenials: 3, DurationMs: 1000, ResultText: "ok", Errors: []);
 
-        Assert.Equal($"Claude Code a terminé{NoBreakSpace}: 8 tours, 3 actions refusées, coût 0,12 $.", ClaudeNarration.Result(result));
+        Assert.Equal("Claude Code finished: 8 turns, 3 actions denied, cost $0.12.", ClaudeNarration.Result(result));
     }
 
     [Fact]

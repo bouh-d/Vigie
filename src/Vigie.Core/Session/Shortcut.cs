@@ -26,8 +26,8 @@ public readonly record struct Shortcut(ShortcutModifiers Modifiers, int VirtualK
             && KeyName(VirtualKey) is not null;
     }
 
-    /// <summary>The label shown in the window and the journal, with the French
-    /// key names, for example « Ctrl + Maj + F9 ».</summary>
+    /// <summary>The label shown in the window and the journal, for example
+    /// "Ctrl + Shift + F9".</summary>
     public override string ToString()
     {
         var parts = new List<string>(4);
@@ -43,7 +43,7 @@ public readonly record struct Shortcut(ShortcutModifiers Modifiers, int VirtualK
 
         if (Modifiers.HasFlag(ShortcutModifiers.Shift))
         {
-            parts.Add("Maj");
+            parts.Add("Shift");
         }
 
         parts.Add(KeyName(VirtualKey) ?? "?");

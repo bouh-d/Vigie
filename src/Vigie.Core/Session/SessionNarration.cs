@@ -1,41 +1,40 @@
 using System.Globalization;
-using Vigie.Core.Logging;
 using Vigie.Core.Power;
 
 namespace Vigie.Core.Session;
 
 /// <summary>
-/// Builds the French journal lines. Every power change is written with its
-/// setting, the power sources it affects, and the value before and after.
+/// Builds the journal lines. Every power change is written with its setting,
+/// the power sources it affects, and the value before and after.
 /// </summary>
 public static class SessionNarration
 {
-    private const string DisplayKeptNotice = "L'écran restera allumé et la session ne se verrouillera plus automatiquement.";
+    private const string DisplayKeptNotice = "The screen will stay on and the PC will no longer lock by itself.";
 
     public static string Started(SessionOptions options)
     {
-        string scope = options.WorkWithLidClosed ? ", fonctionnement capot fermé" : string.Empty;
+        string scope = options.WorkWithLidClosed ? ", running with the lid closed" : string.Empty;
         return options.DurationKind == SessionDurationKind.UntilTask
-            ? Fr($"Session démarrée jusqu'à la fin de la tâche Claude Code ({Duration(options.TaskModeCap)} maximum){scope}.")
-            : Fr($"Session démarrée pour {Duration(options.FixedDuration)}{scope}.");
+            ? $"Session started until the Claude Code task ends ({Duration(options.TaskModeCap)} at most){scope}."
+            : $"Session started for {Duration(options.FixedDuration)}{scope}.";
     }
 
     public static string KeepAwakeActive(bool usesFallback, bool displayKept)
     {
-        string method = usesFallback ? " (méthode de repli)" : string.Empty;
+        string method = usesFallback ? " (fallback method)" : string.Empty;
         string display = displayKept ? " " + DisplayKeptNotice : string.Empty;
-        return Fr($"Maintien en éveil activé{method}.{display}");
+        return $"Keep-awake request on{method}.{display}";
     }
 
-    public static string StartRefused(StartRefusal refusal) => Fr(refusal switch
+    public static string StartRefused(StartRefusal refusal) => refusal switch
     {
-        StartRefusal.KeepAwakeBlockedByPolicy => "Démarrage refusé : votre organisation empêche les applications de bloquer la mise en veille.",
-        StartRefusal.UnrestoredJournal => "Démarrage refusé : le journal de restauration d'une session précédente doit d'abord être traité.",
-        StartRefusal.TrackedProcessGone => "Démarrage refusé : la tâche Claude Code à suivre n'est plus en cours.",
-        _ => "Démarrage refusé.",
-    });
+        StartRefusal.KeepAwakeBlockedByPolicy => "Start refused: your organization prevents apps from blocking sleep.",
+        StartRefusal.UnrestoredJournal => "Start refused: the restore journal of a previous session has to be dealt with first.",
+        StartRefusal.TrackedProcessGone => "Start refused: the Claude Code task to follow is no longer running.",
+        _ => "Start refused.",
+    };
 
-    public static string StartAborted(string cause) => Fr($"Démarrage annulé, réglages remis en place : {cause}");
+    public static string StartAborted(string cause) => $"Start cancelled, settings put back: {cause}";
 
     public static IEnumerable<string> Applied(ApplyReport report)
     {
@@ -44,7 +43,7 @@ public static class SessionNarration
         {
             (Guid _, Guid setting, uint before, uint after) = group.Key;
             PowerIndex indices = group.Aggregate(default(PowerIndex), (acc, c) => acc | c.Index);
-            yield return Fr($"{SettingName(setting)} : {Value(setting, before)} → {Value(setting, after)} ({Sources(indices)}).");
+            yield return $"{SettingName(setting)}: {Value(setting, before)} → {Value(setting, after)} ({Sources(indices)}).";
         }
     }
 
@@ -54,29 +53,29 @@ public static class SessionNarration
         {
             (Guid _, Guid setting, uint? current, uint? original) = group.Key;
             PowerIndex indices = group.Aggregate(default(PowerIndex), (acc, o) => acc | o.Index);
-            yield return Fr($"{SettingName(setting)} rétablie : {Value(setting, current ?? 0)} → {Value(setting, original ?? 0)} ({Sources(indices)}).");
+            yield return $"{SettingName(setting)} restored: {Value(setting, current ?? 0)} → {Value(setting, original ?? 0)} ({Sources(indices)}).";
         }
 
         foreach (RestoreOutcome outcome in report.Outcomes.Where(o => o.Kind == RestoreOutcomeKind.KeptOtherValue))
         {
-            yield return Fr($"{SettingName(outcome.Setting)} : valeur modifiée entre-temps ({Sources(outcome.Index)}), choix de l'utilisateur conservé.");
+            yield return $"{SettingName(outcome.Setting)}: changed in the meantime ({Sources(outcome.Index)}), the user's choice is kept.";
         }
 
         foreach (RestoreOutcome outcome in report.Outcomes.Where(o => o.Kind == RestoreOutcomeKind.Failed))
         {
-            yield return Fr($"Échec du rétablissement de {SettingName(outcome.Setting).ToLowerInvariant()} ({Sources(outcome.Index)}) : code {outcome.Status}.");
+            yield return $"Could not restore the {LowerFirst(SettingName(outcome.Setting))} ({Sources(outcome.Index)}): code {outcome.Status}.";
         }
 
         if (!report.Complete)
         {
-            yield return Fr("Rétablissement incomplet : le journal est conservé pour une nouvelle tentative.");
+            yield return "Restore incomplete: the journal is kept for another attempt.";
         }
     }
 
     /// <summary>
     /// The restored values in a few words, for the message shown when Vigie
     /// starts after a session that did not end normally, for example
-    /// « action du capot sur Veille ».
+    /// "lid action set to Sleep".
     /// </summary>
     public static string RestoredSummary(RestoreReport report)
     {
@@ -85,113 +84,113 @@ public static class SessionNarration
             .. RestoredGroups(report)
                 .Select(group => group.Key)
                 .DistinctBy(key => (key.Setting, key.Original))
-                .Select(key => $"{LowerFirst(SettingName(key.Setting))} sur {Value(key.Setting, key.Original ?? 0)}"),
+                .Select(key => $"{LowerFirst(SettingName(key.Setting))} set to {Value(key.Setting, key.Original ?? 0)}"),
         ];
 
         return parts.Count == 0
-            ? Fr("aucune valeur de Vigie n'était encore en place")
-            : Fr(string.Join(", ", parts));
+            ? "none of Vigie's values were in place yet"
+            : string.Join(", ", parts);
     }
 
     public static string LeftoverRestored()
-        => Fr("Une session précédente ne s'est pas terminée normalement : ses réglages d'alimentation ont été rétablis.");
+        => "A previous session did not end normally: its power settings were restored.";
 
     public static string JournalUnreadable()
-        => Fr("Journal de restauration illisible : aucun réglage n'a été modifié automatiquement.");
+        => "Unreadable restore journal: no setting was changed automatically.";
 
-    public static string Degraded(DegradedReason reason) => Fr(reason switch
+    public static string Degraded(DegradedReason reason) => reason switch
     {
-        DegradedReason.LidActionPolicy => "Mode dégradé : l'action du capot est imposée par une stratégie de groupe.",
-        DegradedReason.WriteDenied => "Mode dégradé : l'action du capot n'a pas pu être modifiée.",
-        DegradedReason.ThirdPartyConflict => "Mode dégradé : un autre logiciel modifie l'action du capot, Vigie cesse de la gérer.",
-        _ => "Mode dégradé.",
-    });
+        DegradedReason.LidActionPolicy => "Degraded mode: a group policy sets the lid action.",
+        DegradedReason.WriteDenied => "Degraded mode: the lid action could not be changed.",
+        DegradedReason.ThirdPartyConflict => "Degraded mode: another program keeps changing the lid action, so Vigie stops managing it.",
+        _ => "Degraded mode.",
+    };
 
     public static string SleepDetected(SleepPeriod period)
-        => Fr($"Le PC a été en veille de {Clock(period.Start)} à {Clock(period.End)} ({Duration(period.Duration)}). Claude Code était suspendu pendant ce temps.");
+        => $"The PC was asleep from {Clock(period.Start)} to {Clock(period.End)} ({Duration(period.Duration)}). Claude Code was paused during that time.";
 
-    public static string Resumed() => Fr("Sortie de veille : demandes de maintien en éveil recréées.");
+    public static string Resumed() => "Back from sleep: keep-awake requests recreated.";
 
-    public static string ReassertFailed(string cause) => Fr($"Impossible de recréer la demande de maintien en éveil : {cause}");
+    public static string ReassertFailed(string cause) => $"Could not recreate the keep-awake request: {cause}";
 
-    public static string DriftReapplied() => Fr("Un réglage d'alimentation avait changé : valeur de la session réappliquée.");
+    public static string DriftReapplied() => "A power setting had changed: the session's value was applied again.";
 
-    public static string PowerSchemeChanged() => Fr("Mode d'alimentation changé : les réglages de la session y sont appliqués.");
+    public static string PowerSchemeChanged() => "Power plan changed: the session's settings are applied to it.";
 
     public static string LidClosed(bool locked, bool displayHeld)
     {
-        string compatibility = displayHeld ? ", affichage maintenu actif (compatibilité Modern Standby)" : string.Empty;
+        string compatibility = displayHeld ? ", display kept active (Modern Standby compatibility)" : string.Empty;
         return locked
-            ? Fr($"Capot fermé : session Windows verrouillée{compatibility}.")
-            : Fr($"Capot fermé{compatibility}.");
+            ? $"Lid closed: Windows session locked{compatibility}."
+            : $"Lid closed{compatibility}.";
     }
 
-    public static string LockFailed() => Fr("Capot fermé : le verrouillage de la session Windows a échoué.");
+    public static string LockFailed() => "Lid closed: locking the Windows session failed.";
 
-    public static string LidOpened() => Fr("Capot rouvert.");
+    public static string LidOpened() => "Lid opened.";
 
-    public static string OnBattery() => Fr("Passage sur batterie pendant la session.");
+    public static string OnBattery() => "Switched to battery during the session.";
 
     public static string BatteryStop(int percent)
-        => Fr($"Batterie à {percent} % : session arrêtée, réglages d'alimentation rétablis.");
+        => $"Battery at {percent}%: session stopped, power settings restored.";
 
     public static string Suspended(bool succeeded)
-        => Fr(succeeded
-            ? "Mise en veille du PC (fin de session, capot fermé)."
-            : "Mise en veille demandée ; le PC suivra le délai de Windows.");
+        => succeeded
+            ? "Putting the PC to sleep (end of session, lid closed)."
+            : "Sleep requested; the PC will follow the Windows timeout.";
 
     public static string RebootPending()
-        => Fr("Un redémarrage de Windows Update est en attente : il peut interrompre la tâche.");
+        => "A Windows Update restart is pending and may interrupt the task.";
 
     public static string SleepModel(bool modernStandby)
-        => Fr(modernStandby ? "Type de veille de ce PC : Modern Standby." : "Type de veille de ce PC : S3.");
+        => modernStandby ? "This PC uses Modern Standby." : "This PC uses S3 sleep.";
 
     public static string ModernStandbyOnBattery()
-        => Fr("Sur batterie, la mise en veille automatique est désactivée pendant la session, puis rétablie.");
+        => "On battery, sleep is turned off during the session and turned back on afterwards.";
 
     public static string ActivityLockOn(Shortcut shortcut)
-        => Fr($"Verrou d'activité activé : il s'arme après {Duration(ActivityLock.QuietPeriod)} sans activité ; {shortcut} le désactive ou le réarme.");
+        => $"Lock ready: on after {Duration(ActivityLock.QuietPeriod)} without activity, {shortcut} to turn it off.";
 
     public static string ActivityLockArmed(ActivityResponse response)
-        => Fr(response == ActivityResponse.Lock
-            ? "Verrou d'activité armé : au premier mouvement, la session Windows sera verrouillée."
-            : "Verrou d'activité armé : au premier mouvement, le PC sera mis en veille.");
+        => response == ActivityResponse.Lock
+            ? "Lock on: the next movement will lock the PC."
+            : "Lock on: the next movement will put the PC to sleep.";
 
-    public static string ActivityLockDisarmed(Shortcut shortcut) => Fr($"Verrou d'activité désactivé par {shortcut}.");
+    public static string ActivityLockDisarmed(Shortcut shortcut) => $"Lock turned off ({shortcut}).";
 
     public static string ActivityLockRearmed()
-        => Fr($"Verrou d'activité réarmé : il s'arme après {Duration(ActivityLock.QuietPeriod)} sans activité.");
+        => $"Lock turned back on: on after {Duration(ActivityLock.QuietPeriod)} without activity.";
 
     public static string ActivityLockPausedByWindowsLock(Shortcut shortcut)
-        => Fr($"Session Windows verrouillée : verrou d'activité désactivé, {shortcut} le réarme.");
+        => $"Windows locked: lock turned off, {shortcut} to turn it back on.";
 
     public static string ActivityLocked(bool succeeded)
-        => Fr(succeeded
-            ? "Activité détectée : session Windows verrouillée."
-            : "Activité détectée, mais le verrouillage de la session Windows a échoué.");
+        => succeeded
+            ? "Activity detected: PC locked."
+            : "Activity detected, but locking the PC failed.";
 
-    public static string ActivitySuspending() => Fr("Activité détectée : mise en veille du PC.");
+    public static string ActivitySuspending() => "Activity detected: putting the PC to sleep.";
 
-    public static string ActivitySuspendFailed() => Fr("La mise en veille du PC a échoué.");
+    public static string ActivitySuspendFailed() => "Putting the PC to sleep failed.";
 
-    public static string SettingsNotSaved(string cause) => Fr($"Les réglages n'ont pas pu être enregistrés : {cause}");
+    public static string SettingsNotSaved(string cause) => $"Could not save the settings: {cause}";
 
-    public static string RecoveryUnavailable(string cause) => Fr($"Filet de sécurité indisponible : {cause}");
+    public static string RecoveryUnavailable(string cause) => $"Safety net unavailable: {cause}";
 
-    public static string RecoveryCleanupFailed(string cause) => Fr($"Nettoyage du filet de sécurité incomplet : {cause}");
+    public static string RecoveryCleanupFailed(string cause) => $"Safety net cleanup incomplete: {cause}";
 
     public static string RestoreFailed(string cause)
-        => Fr($"Le journal de restauration n'a pas pu être mis à jour : {cause}. Il sera repris au prochain lancement.");
+        => $"The restore journal could not be updated: {cause}. The next launch will pick it up.";
 
     public static string Stopped(StopReason reason, TimeSpan actualDuration, int sleepCount)
     {
         string sleeps = sleepCount switch
         {
             0 => string.Empty,
-            1 => ", 1 veille détectée",
-            _ => $", {sleepCount} veilles détectées",
+            1 => ", 1 sleep detected",
+            _ => $", {sleepCount} sleeps detected",
         };
-        return Fr($"Session terminée ({ReasonText(reason)}, durée réelle {Duration(actualDuration)}{sleeps}).");
+        return $"Session ended ({ReasonText(reason)}, ran for {Duration(actualDuration)}{sleeps}).";
     }
 
     private static IEnumerable<IGrouping<(Guid Scheme, Guid Setting, uint? Current, uint? Original), RestoreOutcome>> RestoredGroups(RestoreReport report)
@@ -201,27 +200,27 @@ public static class SessionNarration
 
     private static string ReasonText(StopReason reason) => reason switch
     {
-        StopReason.TimerElapsed => "minuteur écoulé",
-        StopReason.UserStopped => "arrêt demandé",
-        StopReason.TaskFinished => "tâche terminée",
-        StopReason.BatteryThreshold => "seuil de batterie",
-        StopReason.TaskModeCap => "plafond atteint",
-        StopReason.ApplicationClosing => "fermeture de Vigie",
-        StopReason.WindowsSessionEnding => "fermeture de session Windows",
-        StopReason.UnhandledException => "erreur interne",
-        _ => "arrêt",
+        StopReason.TimerElapsed => "timer elapsed",
+        StopReason.UserStopped => "stopped by you",
+        StopReason.TaskFinished => "task finished",
+        StopReason.BatteryThreshold => "battery threshold",
+        StopReason.TaskModeCap => "task mode limit reached",
+        StopReason.ApplicationClosing => "Vigie closing",
+        StopReason.WindowsSessionEnding => "Windows signing out",
+        StopReason.UnhandledException => "internal error",
+        _ => "stopped",
     };
 
     private static string SettingName(Guid setting)
     {
         if (setting == PowerKnownSettings.LidAction)
         {
-            return "Action du capot";
+            return "Lid action";
         }
 
         if (setting == PowerKnownSettings.StandbyIdle)
         {
-            return "Mise en veille automatique";
+            return "Sleep timeout";
         }
 
         return setting.ToString("D");
@@ -233,17 +232,17 @@ public static class SessionNarration
         {
             return value switch
             {
-                (uint)LidAction.DoNothing => "Ne rien faire",
-                (uint)LidAction.Sleep => "Veille",
-                (uint)LidAction.Hibernate => "Veille prolongée",
-                (uint)LidAction.Shutdown => "Arrêter",
-                _ => $"valeur {value}",
+                (uint)LidAction.DoNothing => "Do nothing",
+                (uint)LidAction.Sleep => "Sleep",
+                (uint)LidAction.Hibernate => "Hibernate",
+                (uint)LidAction.Shutdown => "Shut down",
+                _ => $"value {value}",
             };
         }
 
         if (setting == PowerKnownSettings.StandbyIdle)
         {
-            return value == 0 ? "Jamais" : Duration(TimeSpan.FromSeconds(value));
+            return value == 0 ? "Never" : Duration(TimeSpan.FromSeconds(value));
         }
 
         return value.ToString(CultureInfo.InvariantCulture);
@@ -251,9 +250,9 @@ public static class SessionNarration
 
     private static string Sources(PowerIndex indices) => indices switch
     {
-        PowerIndex.Ac => "secteur",
-        PowerIndex.Dc => "batterie",
-        _ => "secteur, batterie",
+        PowerIndex.Ac => "AC",
+        PowerIndex.Dc => "battery",
+        _ => "AC, battery",
     };
 
     private static string Duration(TimeSpan duration)
@@ -263,7 +262,7 @@ public static class SessionNarration
 
         if (hours > 0 && minutes > 0)
         {
-            return $"{hours} h {minutes:00}";
+            return $"{hours} h {minutes} min";
         }
 
         if (hours > 0)
@@ -283,6 +282,4 @@ public static class SessionNarration
         => text.Length == 0 ? text : char.ToLowerInvariant(text[0]) + text[1..];
 
     private static string Clock(DateTimeOffset time) => time.ToString("HH:mm", CultureInfo.InvariantCulture);
-
-    private static string Fr(string text) => FrenchTypography.Fix(text);
 }

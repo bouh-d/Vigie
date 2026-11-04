@@ -15,7 +15,7 @@ namespace Vigie.Core.Session;
 /// </summary>
 public sealed class SessionController
 {
-    private const string RequestReason = "Vigie — session d'éveil active";
+    private const string RequestReason = "Vigie keep-awake session";
     private const int ConsoleDisplayOn = 1;
 
     private static readonly TimeSpan DriftCheckInterval = TimeSpan.FromSeconds(60);

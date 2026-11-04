@@ -63,7 +63,7 @@ public class ActivityLockTests
         Assert.Equal(1, _power.LockCount);
         Assert.Equal(0, _power.SuspendCount);
         Assert.Equal(ActivityLockState.Disarmed, _lock.State);
-        Assert.True(_log.Contains("session Windows verrouillée"));
+        Assert.True(_log.Contains("PC locked"));
     }
 
     [Fact]
@@ -189,7 +189,7 @@ public class ActivityLockTests
         Touch();
         _lock.Poll();
 
-        Assert.True(_log.Contains("a échoué"));
+        Assert.True(_log.Contains("failed"));
     }
 
     [Fact]

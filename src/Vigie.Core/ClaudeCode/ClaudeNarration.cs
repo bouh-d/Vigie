@@ -1,76 +1,71 @@
 using System.Globalization;
-using Vigie.Core.Logging;
 
 namespace Vigie.Core.ClaudeCode;
 
-/// <summary>The French journal lines about Claude Code processes and runs.</summary>
+/// <summary>The journal lines about Claude Code processes and runs.</summary>
 public static class ClaudeNarration
 {
-    private static readonly CultureInfo French = CultureInfo.GetCultureInfo("fr-FR");
-
     public static string Launched(int processId, ClaudeLaunchMode mode)
     {
-        string kind = mode == ClaudeLaunchMode.Autonomous ? "tâche autonome" : "session interactive";
-        return Fr($"Claude Code lancé (PID {processId}, {kind}).");
+        string kind = mode == ClaudeLaunchMode.Autonomous ? "autonomous task" : "interactive session";
+        return $"Claude Code started (PID {processId}, {kind}).";
     }
 
-    public static string OutputRecordedIn(string directory) => Fr($"Sortie de Claude Code enregistrée dans {directory}.");
+    public static string OutputRecordedIn(string directory) => $"Claude Code output recorded in {directory}.";
 
-    public static string SessionIdentified(string sessionId) => Fr($"Session Claude Code {sessionId}.");
+    public static string SessionIdentified(string sessionId) => $"Claude Code session {sessionId}.";
 
     public static string Retry(ApiRetryEvent retry)
     {
         string category = retry.ErrorCategory is { Length: > 0 } value ? $" ({value})" : string.Empty;
-        return Fr($"Claude Code : connexion instable, nouvelle tentative {retry.Attempt} sur {retry.MaxRetries}{category}.");
+        return $"Claude Code: unstable connection, retry {retry.Attempt} of {retry.MaxRetries}{category}.";
     }
 
     public static string PermissionDenied(PermissionDeniedEvent denied)
-        => Fr($"Claude Code : action refusée ({denied.ToolName ?? "outil inconnu"}).");
+        => $"Claude Code: action denied ({denied.ToolName ?? "unknown tool"}).";
 
     public static string Result(ResultEvent result)
     {
         if (result.Succeeded)
         {
             string cost = result.TotalCostUsd is decimal value
-                ? $", coût {value.ToString("0.00", French)} $"
+                ? $", cost ${value.ToString("0.00", CultureInfo.InvariantCulture)}"
                 : string.Empty;
-            return Fr($"Claude Code a terminé : {result.NumTurns ?? 0} tours, {result.PermissionDenials} actions refusées{cost}.");
+            return $"Claude Code finished: {result.NumTurns ?? 0} turns, {result.PermissionDenials} actions denied{cost}.";
         }
 
-        string detail = result.Errors.Count > 0 ? $" : {result.Errors[0]}" : string.Empty;
-        return Fr($"Claude Code a terminé en erreur ({result.Subtype}){detail}.");
+        string detail = result.Errors.Count > 0 ? $": {result.Errors[0]}" : string.Empty;
+        return $"Claude Code finished with an error ({result.Subtype}){detail}.";
     }
 
     public static string Exited(int processId, int exitCode)
-        => Fr($"Claude Code (PID {processId}) s'est arrêté, code de sortie {exitCode}.");
+        => $"Claude Code (PID {processId}) exited with code {exitCode}.";
 
-    public static string Interrupted(InterruptOutcome outcome) => Fr(outcome switch
+    public static string Interrupted(InterruptOutcome outcome) => outcome switch
     {
-        InterruptOutcome.StoppedCleanly => "Claude Code interrompu à votre demande.",
-        InterruptOutcome.Killed => "Claude Code ne s'est pas arrêté à temps : son arbre de processus a été terminé.",
-        _ => "Claude Code s'était déjà arrêté.",
-    });
+        InterruptOutcome.StoppedCleanly => "Claude Code interrupted at your request.",
+        InterruptOutcome.Killed => "Claude Code did not stop in time: its process tree was ended.",
+        _ => "Claude Code had already stopped.",
+    };
 
     public static string ExternalExited(ExternalExit exit)
     {
-        string code = exit.ExitCode is int value ? $", code de sortie {value}" : string.Empty;
-        return Fr($"Claude Code (PID {exit.Process.ProcessId}, externe) s'est arrêté{code}.");
+        string code = exit.ExitCode is int value ? $" with code {value}" : string.Empty;
+        return $"Claude Code (PID {exit.Process.ProcessId}, external) exited{code}.";
     }
 
-    public static string CandidateRejected(RejectedCandidate candidate) => Fr(candidate.Reason switch
+    public static string CandidateRejected(RejectedCandidate candidate) => candidate.Reason switch
     {
-        CandidateRejection.GraphicalApplication => $"{candidate.Path} ignoré : application graphique, sans doute l'application de bureau Claude.",
-        CandidateRejection.InsideProjectFolder => $"{candidate.Path} ignoré : il se trouve dans le dossier du projet.",
-        CandidateRejection.InCurrentDirectory => $"{candidate.Path} ignoré : il se trouve dans le dossier courant.",
-        CandidateRejection.NotAnExecutable => $"{candidate.Path} ignoré : ce n'est pas un exécutable Windows.",
-        _ => $"{candidate.Path} introuvable.",
-    });
+        CandidateRejection.GraphicalApplication => $"{candidate.Path} skipped: a graphical application, probably the Claude desktop app.",
+        CandidateRejection.InsideProjectFolder => $"{candidate.Path} skipped: it is inside the project folder.",
+        CandidateRejection.InCurrentDirectory => $"{candidate.Path} skipped: it is in the current folder.",
+        CandidateRejection.NotAnExecutable => $"{candidate.Path} skipped: not a Windows executable.",
+        _ => $"{candidate.Path} not found.",
+    };
 
-    public static string NodeScanFailed(string cause) => Fr($"Détection des installations npm de Claude Code indisponible : {cause}");
+    public static string NodeScanFailed(string cause) => $"Cannot look for npm installations of Claude Code: {cause}";
 
-    public static string RecordingFailed(string cause) => Fr($"Enregistrement de la sortie de Claude Code interrompu : {cause}");
+    public static string RecordingFailed(string cause) => $"Recording of the Claude Code output stopped: {cause}";
 
-    public static string OldRunsCleanupFailed(string cause) => Fr($"Suppression des anciennes sorties de Claude Code impossible : {cause}");
-
-    private static string Fr(string text) => FrenchTypography.Fix(text);
+    public static string OldRunsCleanupFailed(string cause) => $"Could not delete old Claude Code output: {cause}";
 }

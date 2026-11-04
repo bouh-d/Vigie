@@ -24,11 +24,11 @@ public class ShortcutTests
         => Assert.False(new Shortcut(ShortcutModifiers.Control | ShortcutModifiers.Alt, key).IsValid());
 
     [Fact]
-    public void TheLabelUsesTheFrenchKeyNames()
+    public void TheLabelNamesEachKey()
     {
         var shortcut = new Shortcut(ShortcutModifiers.Control | ShortcutModifiers.Shift, VkF9);
 
         Assert.True(shortcut.IsValid());
-        Assert.Equal("Ctrl + Maj + F9", shortcut.ToString());
+        Assert.Equal("Ctrl + Shift + F9", shortcut.ToString());
     }
 }
