@@ -136,7 +136,7 @@ public partial class App : Application
 
         void StopSession()
         {
-            _services?.Log.Error($"Erreur interne : {exception?.GetBaseException().Message}");
+            _services?.Log.Error($"Internal error: {exception?.GetBaseException().Message}");
             _viewModel?.ShutDown(StopReason.UnhandledException);
         }
 

@@ -72,7 +72,7 @@
         <StackPanel IsEnabled="{Binding OptionsEnabled}" Margin="0,10,0,0">
           <Grid Margin="0,0,0,10">
             <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="56" />
+              <ColumnDefinition Width="72" />
               <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" Text="{x:Static res:Strings.Duration_Label}" Style="{StaticResource FieldLabel}" />
@@ -86,7 +86,7 @@
                          Visibility="{Binding IsCustomDuration, Converter={StaticResource BoolVis}}" />
             </StackPanel>
           </Grid>
-          <ComboBox Width="280" HorizontalAlignment="Left" Margin="56,-2,0,10" ItemsSource="{Binding TaskTargets}" SelectedItem="{Binding SelectedTaskTarget}"
+          <ComboBox Width="280" HorizontalAlignment="Left" Margin="72,-2,0,10" ItemsSource="{Binding TaskTargets}" SelectedItem="{Binding SelectedTaskTarget}"
                     Visibility="{Binding IsUntilTask, Converter={StaticResource BoolVis}}"
                     AutomationProperties.Name="{x:Static res:Strings.Claude_TrackTarget}" />
 

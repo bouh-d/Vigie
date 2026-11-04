@@ -4,7 +4,7 @@ using System.Resources;
 namespace Vigie.App.Resources;
 
 /// <summary>
-/// Typed access to the French interface strings in <c>Strings.resx</c>. Values
+/// Typed access to the interface strings in <c>Strings.resx</c>. Values
 /// with placeholders are format strings, applied with <see cref="Format"/>.
 /// </summary>
 public static class Strings

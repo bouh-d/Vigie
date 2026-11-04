@@ -863,7 +863,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         if (duration.TotalHours >= 1)
         {
-            return duration.Minutes > 0 ? $"{(int)duration.TotalHours} h {duration.Minutes:00}" : $"{(int)duration.TotalHours} h";
+            return duration.Minutes > 0 ? $"{(int)duration.TotalHours} h {duration.Minutes} min" : $"{(int)duration.TotalHours} h";
         }
 
         return duration.TotalMinutes >= 1 ? $"{(int)duration.TotalMinutes} min" : $"{duration.Seconds} s";
