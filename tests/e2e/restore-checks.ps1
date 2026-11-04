@@ -135,11 +135,15 @@ function Open-Vigie {
     $transform.Resize(620, [Math]::Min(860, $area.Height))
 
     # Nothing in this run may lock or suspend the machine, whatever the
-    # virtual hardware reports about its lid.
+    # virtual hardware reports about its lid. The two options sit in the
+    # advanced settings, which are folded away until opened.
+    $advanced = (Find-Element $script:window 'AdvancedSettings').GetCurrentPattern([System.Windows.Automation.ExpandCollapsePattern]::Pattern)
+    $advanced.Expand()
     foreach ($id in 'LockOnLidClose', 'SuspendAtEnd') {
         $toggle = (Find-Element $script:window $id).GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern)
         if ($toggle.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On) { $toggle.Toggle() }
     }
+    $advanced.Collapse()
 
     $process
 }
