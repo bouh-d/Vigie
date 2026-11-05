@@ -88,4 +88,4 @@ well, and on ARM64 if a machine is available.
 
 | Date | Model | Windows version | Modern Standby or S3 | Cases | Result |
 | --- | --- | --- | --- | --- | --- |
-|      |       |                 |                      |       |        |
+| 2026-11-05 | Samsung 940XGK | Windows 11 Home x64, build 26200 | Modern Standby | T5, T6, T8 | Pass. T5: values identical after the timer ended. T6: restored by the watchdog 230 ms after the kill. T8: restored 390 ms after the relaunch, with the startup message. |
