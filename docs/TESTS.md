@@ -89,3 +89,4 @@ well, and on ARM64 if a machine is available.
 | Date | Model | Windows version | Modern Standby or S3 | Cases | Result |
 | --- | --- | --- | --- | --- | --- |
 | 2026-11-05 | Samsung 940XGK | Windows 11 Home x64, build 26200 | Modern Standby | T5, T6, T8 | Pass. T5: values identical after the timer ended. T6: restored by the watchdog 230 ms after the kill. T8: restored 390 ms after the relaunch, with the startup message. |
+| 2026-11-05 | Samsung 940XGK | Windows 11 Home x64, build 26200 | Modern Standby | T21, T22, T23 | Pass. T21: the first mouse movement locked the PC once the lock was on. T22: the shortcut turned the lock off and back on, with a notification each time. T23: with the sleep action, signing in on the lock screen did not put the PC to sleep. |
