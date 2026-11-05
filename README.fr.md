@@ -89,7 +89,7 @@ la session à la fermeture du capot.
 ### Verrou d'activité
 
 Cochez **Lock if someone touches the PC** pour un portable laissé ouvert
-pendant une session. Après 15 secondes sans activité, le premier mouvement de
+pendant une session. Après 3 secondes sans activité, le premier mouvement de
 souris ou appui sur une touche verrouille le PC, et Claude Code continue. Dans
 **Advanced settings**, vous pouvez choisir la mise en veille à la place : elle met
 Claude Code en pause.

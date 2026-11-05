@@ -132,7 +132,7 @@ for a prompt uses up to about 50 ms every 3 s; one at work, several times more.
 ## The activity lock
 
 An optional lock for a laptop left open during a session: once nobody has
-touched the PC for 15 seconds, the first input locks the Windows session
+touched the PC for 3 seconds, the first input locks the Windows session
 (`LockWorkStation`) or suspends the PC. It is built so that nothing about it
 resembles a keylogger:
 

@@ -47,7 +47,7 @@ public sealed class ActivityLock(IPowerApi power, IKeyboard keyboard, ILog log, 
 
     /// <summary>How long nobody may touch the PC before the lock arms, so the
     /// user can start a session and walk away.</summary>
-    public static TimeSpan QuietPeriod { get; } = TimeSpan.FromSeconds(15);
+    public static TimeSpan QuietPeriod { get; } = TimeSpan.FromSeconds(3);
 
     /// <summary>How long the rest of the shortcut may take once its modifier
     /// keys are down.</summary>

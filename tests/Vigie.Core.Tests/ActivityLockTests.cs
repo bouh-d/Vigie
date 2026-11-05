@@ -42,10 +42,10 @@ public class ActivityLockTests
     public void ActivityWhileArmingPushesTheArmingBack()
     {
         _lock.Start(ActivityResponse.Lock, CtrlAltV);
-        Untouched(TimeSpan.FromSeconds(10));
+        Untouched(ActivityLock.QuietPeriod - TimeSpan.FromSeconds(1));
 
         Touch();
-        Untouched(TimeSpan.FromSeconds(10));
+        Untouched(ActivityLock.QuietPeriod - TimeSpan.FromSeconds(1));
         _lock.Poll();
 
         Assert.Equal(ActivityLockState.Arming, _lock.State);

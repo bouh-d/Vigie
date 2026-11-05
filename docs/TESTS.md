@@ -67,9 +67,9 @@ Vigie with the lid closed. Then T1 and T2.
 | T18 | Change the power scheme during the session | Both schemes return to their original values |
 | T19 | Change the lid value by hand during the session, then end the session within a minute | Restore does not overwrite the user's choice |
 | T20 | Close the window during a session | "Minimise / Stop and quit / Cancel" choice |
-| T21 | Activity lock on, lid open: leave the PC untouched 15 s, then move the mouse | Session locked within a second, journal entry, Claude Code still running |
-| T22 | Activity lock armed: press the shortcut, use the PC, press it again, leave it 15 s | Disarmed without locking, then armed again, a notification each time |
-| T23 | Activity lock set to sleep, armed: lock Windows with Win + L, then press a key on the lock screen | The PC does not sleep |
+| T21 | Activity lock on, lid open: leave the PC untouched 3 s, then move the mouse | Session locked within a second, journal entry, Claude Code still running |
+| T22 | Activity lock armed: press the shortcut, use the PC, press it again, leave it 3 s | Disarmed without locking, then armed again, a notification each time |
+| T23 | Activity lock set to sleep: start a session, lock Windows with Win + L within 3 seconds, then press a key on the lock screen | The PC does not sleep |
 | T24 | Task mode on a Claude desktop app session: let its task finish and leave the tab open | Listed as idle about 2 min later; the wake session ends about 12 min after the task, with a log line naming the idle task |
 
 A value changed during a session is re-applied once at the next periodic check,

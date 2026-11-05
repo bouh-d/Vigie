@@ -8,7 +8,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- An activity lock: during a session, after 15 seconds without activity, the
+- An activity lock: during a session, after 3 seconds without activity, the
   first mouse movement or key press locks the PC or puts it to sleep. A shortcut
   the user chooses turns it off and on.
 - The window's choices, including the shortcut, are kept between launches.

@@ -86,7 +86,7 @@ when you close the lid.
 ### Activity lock
 
 Tick **Lock if someone touches the PC** for a laptop left open during a
-session. After 15 seconds without activity, the first mouse movement or key
+session. After 3 seconds without activity, the first mouse movement or key
 press locks the PC, and Claude Code keeps running. Under **Advanced settings**
 you can choose sleep instead, which pauses Claude Code.
 
