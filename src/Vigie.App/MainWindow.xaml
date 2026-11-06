@@ -95,6 +95,10 @@
           <TextBlock Text="{x:Static res:Strings.Opt_LidClosedNote}" Style="{StaticResource Hint}" Margin="22,2,0,8"
                      Visibility="{Binding WorkWithLidClosed, Converter={StaticResource BoolVis}}" />
 
+          <CheckBox Content="{x:Static res:Strings.Opt_KeepDisplay}" IsChecked="{Binding KeepDisplayOn}" Margin="0,0,0,8"
+                    ToolTip="{x:Static res:Strings.Warn_KeepDisplay}" AutomationProperties.HelpText="{x:Static res:Strings.Warn_KeepDisplay}"
+                    AutomationProperties.AutomationId="KeepDisplayOn" />
+
           <CheckBox Content="{Binding ActivityLockLabel}" IsChecked="{Binding ActivityLockEnabled}"
                     ToolTip="{x:Static res:Strings.Tip_ActivityLock}" AutomationProperties.HelpText="{x:Static res:Strings.Tip_ActivityLock}"
                     AutomationProperties.AutomationId="ActivityLock" />
@@ -239,8 +243,6 @@
         <!-- Advanced settings -->
         <Expander Header="{x:Static res:Strings.Opt_Advanced}" Margin="0,6,0,0" AutomationProperties.AutomationId="AdvancedSettings">
           <StackPanel Margin="22,10,0,4" IsEnabled="{Binding OptionsEnabled}">
-            <CheckBox Content="{x:Static res:Strings.Opt_KeepDisplay}" IsChecked="{Binding KeepDisplayOn}" Margin="0,0,0,6"
-                      ToolTip="{x:Static res:Strings.Warn_KeepDisplay}" />
             <CheckBox Content="{x:Static res:Strings.Opt_LockOnLid}" IsChecked="{Binding LockOnLidClose}" Margin="0,0,0,6"
                       IsEnabled="{Binding LockOptionEnabled}" ToolTip="{x:Static res:Strings.Tip_LockOnLid}"
                       AutomationProperties.AutomationId="LockOnLidClose" />

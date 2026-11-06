@@ -341,6 +341,20 @@ public class SessionControllerTests
     }
 
     [Fact]
+    public void KeepingTheScreenOnHoldsTheDisplayForTheWholeSessionAlongsideTheLidOptions()
+    {
+        Start(Options() with { KeepDisplayOn = true, WorkWithLidClosed = true, LockOnLidClose = true });
+        Assert.True(_power.LastRequest!.DisplayRequired);
+
+        _controller.OnLidChanged(closed: true);
+        Assert.True(_power.LastRequest!.DisplayRequired);
+        Assert.Equal(1, _power.LockCount);
+
+        _controller.OnLidChanged(closed: false);
+        Assert.True(_power.LastRequest!.DisplayRequired);
+    }
+
+    [Fact]
     public void WithoutCompatibilityModeTheLidLeavesTheDisplayRequestAlone()
     {
         Start(Options());

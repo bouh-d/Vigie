@@ -111,7 +111,7 @@
   <data name="Warn_RequestsBlocked" xml:space="preserve"><value>Your organization prevents apps from blocking sleep. Vigie cannot keep this PC awake.</value></data>
   <data name="Warn_SleepDetected" xml:space="preserve"><value>The PC was asleep from {0} to {1} ({2}). Claude Code was paused during that time.</value></data>
   <data name="Warn_BatteryThreshold" xml:space="preserve"><value>Battery at {0}%: session stopped, power settings restored.</value></data>
-  <data name="Warn_KeepDisplay" xml:space="preserve"><value>The screen will stay on and the PC will no longer lock by itself.</value></data>
+  <data name="Warn_KeepDisplay" xml:space="preserve"><value>The screen stays on during the session, so Windows no longer locks the PC by itself. Tick "Lock if someone touches the PC" to keep it protected.</value></data>
   <data name="Warn_Interactive" xml:space="preserve"><value>In an interactive session, Claude Code waits for your approval for some actions. With the lid closed, nobody can answer. Use an autonomous task instead.</value></data>
   <data name="Warn_RebootPending" xml:space="preserve"><value>A Windows Update restart is pending and may interrupt the task.</value></data>
   <data name="Dialog_Ok" xml:space="preserve"><value>OK</value></data>
