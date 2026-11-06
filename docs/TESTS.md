@@ -43,11 +43,17 @@ Vigie with the lid closed. Then T1 and T2.
   Get-WinEvent -FilterHashtable @{LogName='System'; ProviderName='Microsoft-Windows-Kernel-Power'; Id=42,107,506,507} -MaxEvents 20
   ```
 
+  On a Modern Standby laptop on AC, Windows can log 506 with the reason *Idle
+  Timeout* once the AC sleep timeout has passed, although Vigie's request
+  holds. Nothing is suspended then. Check that work went on, with a process
+  that writes the time every few seconds or with Vigie's journal, which reports
+  any real sleep: a 506 is a failure only when activity stopped.
+
 ## Cases
 
 | ID  | Scenario | Expected result |
 | --- | --- | --- |
-| T1  | AC, lid closed, 2-hour session, 30-minute autonomous task | Task finishes, no event 42 or 506, settings restored at the end |
+| T1  | AC, lid closed, 2-hour session, 30-minute autonomous task | Task finishes, no event 42, no pause in activity (see the note on 506), settings restored at the end |
 | T2  | Battery, Modern Standby machine, lid closed 60 min, Windows sleep timeout on battery set to 5 min | No sleep; `STANDBYIDLE` on battery restored at the end |
 | T3  | Battery, S3 machine, lid closed 60 min | No sleep |
 | T4  | Unplug during a lid-closed session | No sleep, battery banner, journal entry |
@@ -90,3 +96,4 @@ well, and on ARM64 if a machine is available.
 | --- | --- | --- | --- | --- | --- |
 | 2026-11-05 | Samsung 940XGK | Windows 11 Home x64, build 26200 | Modern Standby | T5, T6, T8 | Pass. T5: values identical after the timer ended. T6: restored by the watchdog 230 ms after the kill. T8: restored 390 ms after the relaunch, with the startup message. |
 | 2026-11-05 | Samsung 940XGK | Windows 11 Home x64, build 26200 | Modern Standby | T21, T22, T23 | Pass. T21: the first mouse movement locked the PC once the lock was on. T22: the shortcut turned the lock off and back on, with a notification each time. T23: with the sleep action, signing in on the lock screen did not put the PC to sleep. |
+| 2026-11-05 | Samsung 940XGK | Windows 11 Home x64, build 26200 | Modern Standby | T1, short form: lid closed 20 min on AC, no task | Pass. A process writing the time every 10 s ran without a pause (largest gap 11 s) and Vigie detected no sleep. Windows logged 506 (Idle Timeout) 3.5 min after the lid closed and 507 when it opened. |

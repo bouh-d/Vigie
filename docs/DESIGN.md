@@ -18,12 +18,16 @@ work with the lid closed, changes one power-scheme value: the lid close action.
 ## Modern Standby
 
 Most recent laptops use Modern Standby (S0 low-power idle) rather than S3 sleep.
-Two consequences matter:
+Three consequences matter:
 
 - On battery, Windows ends "system required" requests five minutes after the
   sleep timeout. A request alone does not hold on battery. Vigie therefore sets
   the battery sleep timeout to *Never* for the session on these machines — the
   one extra value it changes — and restores it at the end.
+- On AC the request holds, so the AC sleep timeout is left alone. Windows can
+  still log that it entered Modern Standby (event 506, *Idle Timeout*) once
+  that timeout passes; with the request held nothing is suspended, as a laptop
+  test with the lid closed for 20 minutes showed.
 - A Modern Standby sleep may not raise the suspend and resume messages, so Vigie
   also detects sleep by comparing two clocks (below).
 
