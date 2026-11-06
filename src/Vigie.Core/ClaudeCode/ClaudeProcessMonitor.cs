@@ -47,9 +47,10 @@ public sealed record MonitorScan(
 /// <remarks>
 /// An open process is not a running task: a terminal or desktop-app session
 /// stays open while it waits for the next prompt. Activity is the CPU time of
-/// the process and of the commands it runs, or a command starting or ending.
-/// A session waiting for a prompt spends a few milliseconds a second; one at
-/// work, far more.
+/// the process and of the commands it runs, a command starting or ending, or a
+/// command still running, however quiet: a background task waiting on a build
+/// or serving a page. A session waiting for a prompt spends a few milliseconds
+/// a second; one at work, far more.
 /// </remarks>
 public sealed class ClaudeProcessMonitor(IProcessApi processes, IFileSystem fileSystem, IClock clock) : IDisposable
 {
@@ -72,6 +73,13 @@ public sealed class ClaudeProcessMonitor(IProcessApi processes, IFileSystem file
 
     /// <summary>How long a followed task may do nothing before it counts as finished.</summary>
     public static TimeSpan TaskIdleLimit { get; } = TimeSpan.FromMinutes(10);
+
+    /// <summary>
+    /// What Claude Code starts this soon after its own start is one of its
+    /// helpers, such as an MCP server, and lives as long as the session. What
+    /// it starts later runs a command, and counts as work while it runs.
+    /// </summary>
+    public static TimeSpan HelperWindow { get; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
     /// Whether a followed task is over although its process is still open: it
@@ -201,14 +209,15 @@ public sealed class ClaudeProcessMonitor(IProcessApi processes, IFileSystem file
     private ClaudeProcessInfo WithActivity(ClaudeProcessInfo process, ILookup<int, int> childrenOf)
     {
         long now = clock.TickCountMilliseconds;
-        Dictionary<(int, DateTimeOffset), TimeSpan> tree = TreeCpuTimes(process.ProcessId, childrenOf);
+        (Dictionary<(int, DateTimeOffset), TimeSpan> tree, bool commandRunning) = TreeCpuTimes(process.ProcessId, childrenOf);
         var key = (process.ProcessId, process.StartTimeUtc);
 
         if (!_activity.TryGetValue(key, out Activity? activity))
         {
             // Whether a process seen for the first time was busy is unknown:
-            // it shows as idle once a full window has passed without work.
-            activity = new Activity(tree, now - (long)(IdleAfter - ActivityWindow).TotalMilliseconds);
+            // unless a command is running, it shows as idle once a full window
+            // has passed without work.
+            activity = new Activity(tree, commandRunning ? now : now - (long)(IdleAfter - ActivityWindow).TotalMilliseconds);
             _activity[key] = activity;
         }
         else
@@ -222,7 +231,9 @@ public sealed class ClaudeProcessMonitor(IProcessApi processes, IFileSystem file
                 activity.Spent.Dequeue();
             }
 
-            if (commandsChanged || activity.Spent.Sum(sample => sample.Milliseconds) >= ActivityThreshold.TotalMilliseconds)
+            if (commandRunning
+                || commandsChanged
+                || activity.Spent.Sum(sample => sample.Milliseconds) >= ActivityThreshold.TotalMilliseconds)
             {
                 activity.LastActiveTick = now;
             }
@@ -235,17 +246,19 @@ public sealed class ClaudeProcessMonitor(IProcessApi processes, IFileSystem file
         };
     }
 
-    // The process and everything it started, each with its CPU time. A parent
-    // identifier outlives its process and can be given to another one, so a
-    // child older than its parent belongs to someone else and is left out.
-    private Dictionary<(int, DateTimeOffset), TimeSpan> TreeCpuTimes(int rootId, ILookup<int, int> childrenOf)
+    // The process and everything it started, each with its CPU time, and
+    // whether one of its own children runs a command (see HelperWindow). A
+    // parent identifier outlives its process and can be given to another one,
+    // so a child older than its parent belongs to someone else and is left out.
+    private (Dictionary<(int, DateTimeOffset), TimeSpan> Tree, bool CommandRunning) TreeCpuTimes(int rootId, ILookup<int, int> childrenOf)
     {
         var tree = new Dictionary<(int, DateTimeOffset), TimeSpan>();
-        var pending = new Stack<(int ProcessId, DateTimeOffset? ParentStart)>();
-        pending.Push((rootId, null));
+        bool commandRunning = false;
+        var pending = new Stack<(int ProcessId, DateTimeOffset? ParentStart, bool IsRootChild)>();
+        pending.Push((rootId, null, false));
         while (pending.Count > 0)
         {
-            (int processId, DateTimeOffset? parentStart) = pending.Pop();
+            (int processId, DateTimeOffset? parentStart, bool isRootChild) = pending.Pop();
             if (processes.GetTimes(processId) is not { } times
                 || times.StartTimeUtc < parentStart
                 || !tree.TryAdd((processId, times.StartTimeUtc), times.CpuTime))
@@ -253,13 +266,18 @@ public sealed class ClaudeProcessMonitor(IProcessApi processes, IFileSystem file
                 continue;
             }
 
+            if (isRootChild && times.StartTimeUtc - parentStart >= HelperWindow)
+            {
+                commandRunning = true;
+            }
+
             foreach (int child in childrenOf[processId])
             {
-                pending.Push((child, times.StartTimeUtc));
+                pending.Push((child, times.StartTimeUtc, processId == rootId));
             }
         }
 
-        return tree;
+        return (tree, commandRunning);
     }
 
     private void ForgetActivityOfGoneProcesses(List<ClaudeProcessInfo> found)

@@ -136,6 +136,52 @@ public class ClaudeProcessMonitorTests
     }
 
     [Fact]
+    public void AQuietBackgroundCommandKeepsTheSessionWorkingUntilItEnds()
+    {
+        ClaudeProcessMonitor monitor = MonitorWithSession();
+
+        // A command waiting on a build or serving a page uses next to no CPU.
+        AddCommand(101, SessionId);
+        ClaudeProcessInfo session = ScanEvery3Seconds(monitor, TimeSpan.FromMinutes(15), () => { });
+
+        Assert.False(session.IsIdle);
+        Assert.False(ClaudeProcessMonitor.TaskLooksFinished(session, sinceTick: 0, _clock.TickCountMilliseconds));
+
+        _processes.Parents.Remove(101);
+        _processes.Times.Remove(101);
+
+        Assert.False(ScanEvery3Seconds(monitor, TimeSpan.FromMinutes(1), () => { }).IsIdle);
+        Assert.True(ScanEvery3Seconds(monitor, TimeSpan.FromMinutes(1) + TimeSpan.FromSeconds(3), () => { }).IsIdle);
+    }
+
+    [Fact]
+    public void HelpersStartedWithTheSessionAreNotCommands()
+    {
+        ClaudeProcessMonitor monitor = MonitorWithSession();
+
+        // An MCP server starts with the session and lives as long as it; what
+        // it starts itself later is still part of it.
+        _processes.Parents[102] = SessionId;
+        _processes.Times[102] = new ProcessTimes(StartUtc + TimeSpan.FromSeconds(2), TimeSpan.Zero);
+        _processes.Parents[103] = 102;
+        _processes.Times[103] = new ProcessTimes(StartUtc + TimeSpan.FromMinutes(5), TimeSpan.Zero);
+
+        Assert.True(ScanEvery3Seconds(monitor, TimeSpan.FromMinutes(3), () => { }).IsIdle);
+    }
+
+    [Fact]
+    public void ASessionFirstSeenWithACommandRunningIsWorking()
+    {
+        ClaudeProcessMonitor monitor = MonitorWithSession();
+        AddCommand(101, SessionId);
+
+        ClaudeProcessInfo session = monitor.Scan(NoVigie).Processes.Single(p => p.ProcessId == SessionId);
+
+        Assert.False(session.IsIdle);
+        Assert.Equal(_clock.TickCountMilliseconds, session.LastActiveTick);
+    }
+
+    [Fact]
     public void AProcessOlderThanItsParentIsNotOneOfItsCommands()
     {
         ClaudeProcessMonitor monitor = MonitorWithSession();
