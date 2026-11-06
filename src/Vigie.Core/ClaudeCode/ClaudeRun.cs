@@ -22,7 +22,8 @@ public sealed record ClaudeRunSnapshot(
     string? LastErrorLine,
     bool InterruptRequested,
     string? ClaudeSessionId,
-    string? RecordingError);
+    string? RecordingError,
+    UsageLimitEvent? UsageLimit);
 
 /// <summary>
 /// A Claude Code process started by Vigie. In autonomous mode its output is
@@ -48,6 +49,7 @@ public sealed class ClaudeRun : IProcessOutputSink, IDisposable
     private string? _lastErrorLine;
     private bool _interruptRequested;
     private string? _claudeSessionId;
+    private UsageLimitEvent? _usageLimit;
 
     private ClaudeRun(ClaudeLaunchMode mode, IClock clock, IFileSystem fileSystem, string? runDirectory)
     {
@@ -128,7 +130,8 @@ public sealed class ClaudeRun : IProcessOutputSink, IDisposable
                 _lastErrorLine,
                 _interruptRequested,
                 _claudeSessionId,
-                _recordingError);
+                _recordingError,
+                _usageLimit);
         }
     }
 
@@ -188,6 +191,10 @@ public sealed class ClaudeRun : IProcessOutputSink, IDisposable
                     break;
                 case SessionInitEvent init:
                     _claudeSessionId = init.SessionId;
+                    break;
+                case UsageLimitEvent limit:
+                    _usageLimit = limit;
+                    _lastRetry = null;
                     break;
                 case ActivityEvent:
                     _lastRetry = null;

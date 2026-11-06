@@ -9,6 +9,13 @@ namespace Vigie.Core.ClaudeCode;
 /// </summary>
 public static class StreamJsonParser
 {
+    /// <summary>The kind of API error Claude Code gives a request refused by
+    /// the account's usage limit.</summary>
+    public const string UsageLimitReached = "usage_limit_reached";
+
+    // DateTimeOffset.MaxValue, in seconds since 1970.
+    private const double MaxUnixSeconds = 253_402_300_799;
+
     public static ClaudeStreamEvent? Parse(string line)
     {
         ReadOnlySpan<char> trimmed = line.AsSpan().Trim();
@@ -30,6 +37,8 @@ public static class StreamJsonParser
             {
                 "system" => ParseSystem(root),
                 "result" => ParseResult(root),
+                "rate_limit_event" when GetObject(root, "rate_limit_info") is { } info => ParseUsageLimit(info, reached: false),
+                "assistant" when GetString(root, "api_error") == UsageLimitReached => ParseLimitRefusal(root),
                 _ => ActivityEvent.Instance,
             };
         }
@@ -86,8 +95,37 @@ public static class StreamJsonParser
             denials,
             GetInt64(root, "duration_ms"),
             GetString(root, "result"),
-            errors);
+            errors,
+            GetString(root, "api_error"));
     }
+
+    // The refused request's own record of the limit, in the shape of a
+    // rate_limit_event. The refusal itself says the limit was reached.
+    private static UsageLimitEvent ParseLimitRefusal(JsonElement root)
+        => GetObject(root, "api_error_params") is { } parameters && GetObject(parameters, "rate_limit_info") is { } info
+            ? ParseUsageLimit(info, reached: true)
+            : new UsageLimitEvent("rejected", ResetsAt: null, LimitType: null, UsingOverage: false);
+
+    private static UsageLimitEvent ParseUsageLimit(JsonElement info, bool reached)
+    {
+        DateTimeOffset? resetsAt = info.TryGetProperty("resetsAt", out JsonElement value)
+            && value.ValueKind == JsonValueKind.Number
+            && value.TryGetDouble(out double seconds)
+            && seconds is > 0 and <= MaxUnixSeconds
+                ? DateTimeOffset.FromUnixTimeSeconds((long)seconds)
+                : null;
+
+        return new UsageLimitEvent(
+            reached ? "rejected" : GetString(info, "status"),
+            resetsAt,
+            GetString(info, "rateLimitType"),
+            !reached && info.TryGetProperty("isUsingOverage", out JsonElement overage) && overage.ValueKind == JsonValueKind.True);
+    }
+
+    private static JsonElement? GetObject(JsonElement element, string name)
+        => element.TryGetProperty(name, out JsonElement value) && value.ValueKind == JsonValueKind.Object
+            ? value
+            : null;
 
     private static string? GetString(JsonElement element, string name)
         => element.TryGetProperty(name, out JsonElement value) && value.ValueKind == JsonValueKind.String

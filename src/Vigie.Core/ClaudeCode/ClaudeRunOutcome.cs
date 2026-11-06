@@ -5,6 +5,9 @@ public enum ClaudeRunOutcome
     Running,
     Succeeded,
     Failed,
+
+    /// <summary>Stopped because the account's usage limit was reached.</summary>
+    UsageLimited,
     Interrupted,
     UnexpectedStop,
 }
@@ -25,8 +28,13 @@ public static class ClaudeRunClassifier
 
         if (run.Result is ResultEvent result)
         {
-            return result.Succeeded && run.ExitCode is null or 0
-                ? ClaudeRunOutcome.Succeeded
+            if (result.Succeeded && run.ExitCode is null or 0)
+            {
+                return ClaudeRunOutcome.Succeeded;
+            }
+
+            return result.ApiError == StreamJsonParser.UsageLimitReached || run.UsageLimit is { Reached: true }
+                ? ClaudeRunOutcome.UsageLimited
                 : ClaudeRunOutcome.Failed;
         }
 
@@ -38,6 +46,11 @@ public static class ClaudeRunClassifier
         if (exitCode == 0)
         {
             return ClaudeRunOutcome.Succeeded;
+        }
+
+        if (run.UsageLimit is { Reached: true })
+        {
+            return ClaudeRunOutcome.UsageLimited;
         }
 
         // An interactive session reports no result, so its exit code is all

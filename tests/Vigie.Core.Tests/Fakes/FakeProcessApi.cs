@@ -24,6 +24,9 @@ public sealed class FakeProcessApi : IProcessApi
 
     public List<(string FileName, IReadOnlyList<string> Arguments)> Detached { get; } = [];
 
+    /// <summary>What <see cref="Start"/> returns; without one it throws.</summary>
+    public FakeManagedProcess? NextProcess { get; set; }
+
     public IReadOnlyList<ProcessEntry> FindProcesses(string processName)
         => Processes.Where(p => string.Equals(ImageName(p.ExecutablePath), processName, StringComparison.OrdinalIgnoreCase)).ToList();
 
@@ -49,7 +52,7 @@ public sealed class FakeProcessApi : IProcessApi
     public IObservedProcess? Observe(int processId) => Observable.GetValueOrDefault(processId);
 
     public IManagedProcess Start(ProcessLaunch launch, IProcessOutputSink? outputSink)
-        => throw new NotSupportedException();
+        => NextProcess ?? throw new NotSupportedException();
 
     public void StartDetached(string fileName, IReadOnlyList<string> arguments)
         => Detached.Add((fileName, arguments));
@@ -61,6 +64,27 @@ public sealed class FakeProcessApi : IProcessApi
     }
 
     private static string? ImageName(string? path) => path is null ? null : Path.GetFileNameWithoutExtension(path);
+}
+
+public sealed class FakeManagedProcess(int processId) : IManagedProcess
+{
+    private readonly TaskCompletionSource<int> _exit = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public int ProcessId { get; } = processId;
+
+    public bool HasExited => _exit.Task.IsCompleted;
+
+    public void Exit(int exitCode) => _exit.TrySetResult(exitCode);
+
+    public Task<int> WaitForExitAsync(CancellationToken cancellationToken) => _exit.Task.WaitAsync(cancellationToken);
+
+    public bool TrySendCtrlC() => false;
+
+    public void KillTree() => Exit(-1);
+
+    public void Dispose()
+    {
+    }
 }
 
 public sealed class FakeObservedProcess : IObservedProcess

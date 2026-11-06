@@ -61,6 +61,8 @@
   <data name="Claude_Mode_Interactive" xml:space="preserve"><value>Interactive session</value></data>
   <data name="Claude_Permissions" xml:space="preserve"><value>Permissions</value></data>
   <data name="Claude_Args" xml:space="preserve"><value>Arguments</value></data>
+  <data name="Opt_ResumeAfterLimit" xml:space="preserve"><value>Resume after the usage limit resets</value></data>
+  <data name="Opt_ResumeAfterLimitNote" xml:space="preserve"><value>The PC stays awake until the reset, which uses battery. Use it with "Until the Claude Code task ends".</value></data>
   <data name="Claude_TrackTarget" xml:space="preserve"><value>Task to follow</value></data>
   <data name="Claude_Processes" xml:space="preserve"><value>Claude Code processes found</value></data>
   <data name="Btn_Launch" xml:space="preserve"><value>Start Claude Code</value></data>
@@ -90,6 +92,9 @@
   <data name="Claude_Error" xml:space="preserve"><value>Error — code {0}: {1}</value></data>
   <data name="Claude_Error_Unexpected" xml:space="preserve"><value>Error — stopped unexpectedly</value></data>
   <data name="Claude_Retry" xml:space="preserve"><value>Running — unstable connection (attempt {0} of {1})</value></data>
+  <data name="Claude_UsageLimit" xml:space="preserve"><value>Stopped — usage limit reached, resets at {0}</value></data>
+  <data name="Claude_UsageLimitUnknown" xml:space="preserve"><value>Stopped — usage limit reached</value></data>
+  <data name="Claude_ResumeAt" xml:space="preserve"><value>Waiting — usage limit reached, resumes at {0}</value></data>
   <data name="Claude_ProcessLine" xml:space="preserve"><value>PID {0} · {1} · started {2} · {3}</value></data>
   <data name="Claude_OriginVigie" xml:space="preserve"><value>started by Vigie</value></data>
   <data name="Claude_OriginExternal" xml:space="preserve"><value>external</value></data>

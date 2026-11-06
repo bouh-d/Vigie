@@ -1,3 +1,4 @@
+using System.Globalization;
 using Vigie.Core.ClaudeCode;
 using Vigie.Core.Power;
 using Vigie.Core.Session;
@@ -38,7 +39,7 @@ public class NarrationTests
     [Fact]
     public void ASuccessfulResultReportsTurnsDenialsAndCost()
     {
-        var result = new ResultEvent("success", IsError: false, NumTurns: 8, TotalCostUsd: 0.1234m, PermissionDenials: 3, DurationMs: 1000, ResultText: "ok", Errors: []);
+        var result = new ResultEvent("success", IsError: false, NumTurns: 8, TotalCostUsd: 0.1234m, PermissionDenials: 3, DurationMs: 1000, ResultText: "ok", Errors: [], ApiError: null);
 
         Assert.Equal("Claude Code finished: 8 turns, 3 actions denied, cost $0.12.", ClaudeNarration.Result(result));
     }
@@ -46,4 +47,27 @@ public class NarrationTests
     [Fact]
     public void ARetryNamesItsErrorCategory()
         => Assert.Contains("(rate_limit)", ClaudeNarration.Retry(new ApiRetryEvent(3, 10, "rate_limit", 429)), StringComparison.Ordinal);
+
+    [Fact]
+    public void TheUsageLimitLineNamesTheLimitAndItsReset()
+    {
+        var now = new DateTimeOffset(2026, 11, 6, 9, 0, 0, TimeSpan.Zero);
+        DateTimeOffset resetsAt = now.AddHours(2);
+
+        Assert.Equal(
+            $"Claude Code stopped: 5-hour limit reached, it resets at {ClaudeNarration.ClockTime(resetsAt, now)}.",
+            ClaudeNarration.UsageLimitReached(new UsageLimitEvent("rejected", resetsAt, "five_hour", UsingOverage: false), now));
+        Assert.Equal("Claude Code stopped: usage limit reached.", ClaudeNarration.UsageLimitReached(limit: null, now));
+    }
+
+    [Fact]
+    public void AClockTimeShowsTheDateOnlyOnAnotherDay()
+    {
+        // Noon UTC falls on the same date in every time zone from UTC-11 to UTC+11.
+        var now = new DateTimeOffset(2026, 11, 6, 12, 0, 0, TimeSpan.Zero);
+        DateTimeOffset later = now.AddDays(3);
+
+        Assert.Equal(now.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture), ClaudeNarration.ClockTime(now, now));
+        Assert.Equal(later.ToLocalTime().ToString("d MMM HH:mm", CultureInfo.InvariantCulture), ClaudeNarration.ClockTime(later, now));
+    }
 }

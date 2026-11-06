@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
@@ -50,6 +51,12 @@ public sealed partial class MainViewModel : ObservableObject
     private long _lastScanTick = long.MinValue / 2;
     private long _lastLocateTick;
     private bool _lidClosed;
+
+    // The task the user last started, and its resume after the usage limit.
+    private ClaudeLaunchRequest? _task;
+    private DateTimeOffset? _resumeAt;
+    private string? _resumeSessionId;
+    private int _resumeCount;
 
     public MainViewModel(AppServices services, Dispatcher dispatcher)
     {
@@ -179,6 +186,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     public partial string ExtraArguments { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial bool ResumeAfterUsageLimit { get; set; }
 
     [ObservableProperty]
     public partial string ClaudeStateText { get; set; } = string.Empty;
@@ -420,6 +430,9 @@ public sealed partial class MainViewModel : ObservableObject
                 return;
             }
 
+            CancelResume(ResumeCancellation.NewTask);
+            _task = request;
+            _resumeCount = 0;
             StartRun(installation, request, mode);
         }
         finally
@@ -431,6 +444,12 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task InterruptClaude()
     {
+        if (_resumeAt is not null)
+        {
+            CancelResume(ResumeCancellation.Interrupted);
+            return;
+        }
+
         if (_run is { } run && !run.HasExited)
         {
             CanInterruptClaude = false;
@@ -484,6 +503,11 @@ public sealed partial class MainViewModel : ObservableObject
         if (_tick - _lastLocateTick >= LocateInterval)
         {
             LocateClaude();
+        }
+
+        if (_resumeAt is DateTimeOffset resumeAt && _services.Clock.Now >= resumeAt)
+        {
+            ResumeTask();
         }
 
         if (_services.Session.IsRunning)
@@ -559,7 +583,75 @@ public sealed partial class MainViewModel : ObservableObject
             _services.Log.Warning(ClaudeNarration.RecordingFailed(error));
         }
 
+        if (run == _run && ClaudeRunClassifier.Classify(snapshot) == ClaudeRunOutcome.UsageLimited)
+        {
+            OnUsageLimitReached(snapshot);
+        }
+
         RefreshProcesses();
+    }
+
+    private void OnUsageLimitReached(ClaudeRunSnapshot snapshot)
+    {
+        DateTimeOffset now = _services.Clock.Now;
+        _services.Log.Warning(ClaudeNarration.UsageLimitReached(snapshot.UsageLimit, now));
+        if (!ResumeAfterUsageLimit || _task is null)
+        {
+            return;
+        }
+
+        DateTimeOffset? sessionEnd = _services.Session.IsRunning ? _services.Session.EndTime : null;
+        ResumePlan plan = UsageLimitResume.Plan(snapshot, _task.ExtraArguments, _resumeCount, now, sessionEnd);
+        if (plan.ResumeAt is DateTimeOffset resumeAt)
+        {
+            _resumeAt = resumeAt;
+            _resumeSessionId = snapshot.ClaudeSessionId;
+            _services.Log.Info(ClaudeNarration.ResumeScheduled(resumeAt, now));
+        }
+        else
+        {
+            _services.Log.Warning(ClaudeNarration.ResumeRefused(plan));
+        }
+    }
+
+    private void ResumeTask()
+    {
+        string sessionId = _resumeSessionId!;
+        ClaudeLaunchRequest task = _task!;
+        _resumeAt = null;
+        _resumeSessionId = null;
+
+        if (LocateClaude() is not { } installation)
+        {
+            _services.Log.Error(ClaudeNarration.ResumeFailed(cause: null));
+            UpdateClaudeDisplay();
+            return;
+        }
+
+        _resumeCount++;
+        _services.Log.Info(ClaudeNarration.Resuming(sessionId));
+        try
+        {
+            StartRun(installation, UsageLimitResume.Request(task, sessionId), ClaudeLaunchMode.Autonomous);
+        }
+        catch (Exception exception) when (exception is Win32Exception or InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            _services.Log.Error(ClaudeNarration.ResumeFailed(exception.Message));
+            UpdateClaudeDisplay();
+        }
+    }
+
+    private void CancelResume(ResumeCancellation reason)
+    {
+        if (_resumeAt is null)
+        {
+            return;
+        }
+
+        _resumeAt = null;
+        _resumeSessionId = null;
+        _services.Log.Info(ClaudeNarration.ResumeCancelled(reason));
+        UpdateClaudeDisplay();
     }
 
     private bool HandlePreflight(PreflightResult preflight)
@@ -620,7 +712,9 @@ public sealed partial class MainViewModel : ObservableObject
             return false;
         }
 
-        bool open = _aliveProcesses.ContainsKey(pid) || (_run is { HasExited: false } run && run.ProcessId == pid);
+        // A task waiting to resume after the usage limit is still under way.
+        bool open = _aliveProcesses.ContainsKey(pid)
+            || (_run is { } run && run.ProcessId == pid && (!run.HasExited || _resumeAt is not null));
         if (!open)
         {
             return false;
@@ -786,6 +880,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void OnSessionStopped(StopResult result)
     {
+        CancelResume(ResumeCancellation.SessionEnded);
         _services.ActivityLock.Stop();
         _shortcut?.Unregister();
         ShowBatteryWarning = false;
@@ -819,15 +914,20 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void UpdateClaudeDisplay()
     {
-        CanInterruptClaude = _run is { HasExited: false };
+        CanInterruptClaude = _run is { HasExited: false } || _resumeAt is not null;
         int working = DetectedProcesses.Count(p => !p.IsIdle);
         int idle = DetectedProcesses.Count - working;
 
-        if (_run is { } run)
+        if (_resumeAt is DateTimeOffset resumeAt)
+        {
+            ClaudeStateText = Strings.Format(Strings.Claude_ResumeAt, ClaudeNarration.ClockTime(resumeAt, _services.Clock.Now));
+            ClaudeActivity = ClaudeActivity.Idle;
+        }
+        else if (_run is { } run)
         {
             ClaudeRunSnapshot snapshot = run.Snapshot();
             ClaudeRunOutcome outcome = ClaudeRunClassifier.Classify(snapshot);
-            ClaudeStateText = DescribeRun(snapshot, outcome, working, idle);
+            ClaudeStateText = DescribeRun(snapshot, outcome, working, idle, _services.Clock.Now);
             ClaudeActivity = outcome switch
             {
                 ClaudeRunOutcome.Running => ClaudeActivity.Running,
@@ -852,8 +952,11 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
-    private static string DescribeRun(ClaudeRunSnapshot run, ClaudeRunOutcome outcome, int working, int idle) => outcome switch
+    private static string DescribeRun(ClaudeRunSnapshot run, ClaudeRunOutcome outcome, int working, int idle, DateTimeOffset now) => outcome switch
     {
+        ClaudeRunOutcome.UsageLimited when run.UsageLimit?.ResetsAt is DateTimeOffset resetsAt
+            => Strings.Format(Strings.Claude_UsageLimit, ClaudeNarration.ClockTime(resetsAt, now)),
+        ClaudeRunOutcome.UsageLimited => Strings.Claude_UsageLimitUnknown,
         ClaudeRunOutcome.Running when run.LastRetry is { } retry => Strings.Format(Strings.Claude_Retry, retry.Attempt, retry.MaxRetries),
         ClaudeRunOutcome.Running => RunningText(Math.Max(working, 1), idle),
         ClaudeRunOutcome.Succeeded => Strings.Format(
@@ -973,6 +1076,7 @@ public sealed partial class MainViewModel : ObservableObject
         ActivityLockEnabled = settings.ActivityLockEnabled;
         ActivityResponse = settings.ActivityResponse;
         ActivityShortcut = settings.ActivityShortcut;
+        ResumeAfterUsageLimit = settings.ResumeAfterUsageLimit;
     }
 
     private UserSettings CurrentSettings() => new()
@@ -989,6 +1093,7 @@ public sealed partial class MainViewModel : ObservableObject
         ActivityLockEnabled = ActivityLockEnabled,
         ActivityResponse = ActivityResponse,
         ActivityShortcut = ActivityShortcut,
+        ResumeAfterUsageLimit = ResumeAfterUsageLimit,
     };
 
     private void SaveSettings()
@@ -1059,6 +1164,14 @@ public sealed partial class MainViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(ActivityShortcutText));
         UpdateActivityLockStatus();
+    }
+
+    partial void OnResumeAfterUsageLimitChanged(bool value)
+    {
+        if (!value)
+        {
+            CancelResume(ResumeCancellation.OptionOff);
+        }
     }
 
     partial void OnClaudeAvailableChanged(bool value) => OnPropertyChanged(nameof(CanLaunchClaude));

@@ -33,6 +33,9 @@ public sealed record UserSettings
 
     public Shortcut ActivityShortcut { get; init; } = Shortcut.Default;
 
+    /// <summary>Off by default: the PC stays awake while it waits for the reset.</summary>
+    public bool ResumeAfterUsageLimit { get; init; }
+
     /// <summary>A value out of range, from an edited or older file, falls back
     /// to its default; the other choices are kept.</summary>
     public UserSettings Sanitized()

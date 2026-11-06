@@ -129,6 +129,10 @@ public static class Strings
 
     public static string Claude_Args => Get("Claude_Args");
 
+    public static string Opt_ResumeAfterLimit => Get("Opt_ResumeAfterLimit");
+
+    public static string Opt_ResumeAfterLimitNote => Get("Opt_ResumeAfterLimitNote");
+
     public static string Claude_TrackTarget => Get("Claude_TrackTarget");
 
     public static string Claude_Processes => Get("Claude_Processes");
@@ -186,6 +190,12 @@ public static class Strings
     public static string Claude_Error_Unexpected => Get("Claude_Error_Unexpected");
 
     public static string Claude_Retry => Get("Claude_Retry");
+
+    public static string Claude_UsageLimit => Get("Claude_UsageLimit");
+
+    public static string Claude_UsageLimitUnknown => Get("Claude_UsageLimitUnknown");
+
+    public static string Claude_ResumeAt => Get("Claude_ResumeAt");
 
     public static string Claude_ProcessLine => Get("Claude_ProcessLine");
 

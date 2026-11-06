@@ -73,6 +73,55 @@ public class StreamJsonParserTests
     }
 
     [Fact]
+    public void AUsageLimitStopCarriesTheResetTimeAndTheKindOfLimit()
+    {
+        List<ClaudeStreamEvent> events = Parse("streamjson/usage_limit.jsonl");
+        List<UsageLimitEvent> limits = [.. events.OfType<UsageLimitEvent>()];
+
+        Assert.Equal(2, limits.Count);
+        Assert.False(limits[0].Reached);
+        Assert.Equal("allowed_warning", limits[0].Status);
+
+        UsageLimitEvent refusal = limits[1];
+        Assert.True(refusal.Reached);
+        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1_800_003_600), refusal.ResetsAt);
+        Assert.Equal("five_hour", refusal.LimitType);
+
+        ResultEvent result = events.OfType<ResultEvent>().Single();
+        Assert.False(result.Succeeded);
+        Assert.Equal(StreamJsonParser.UsageLimitReached, result.ApiError);
+    }
+
+    [Theory]
+    [InlineData("""{"type":"rate_limit_event","rate_limit_info":{"status":"rejected","resetsAt":1800003600,"isUsingOverage":true}}""", false)]
+    [InlineData("""{"type":"rate_limit_event","rate_limit_info":{"status":"rejected"}}""", true)]
+    [InlineData("""{"type":"assistant","api_error":"usage_limit_reached"}""", true)]
+    public void ALimitIsReachedOnlyWhenRequestsAreRefused(string line, bool reached)
+    {
+        UsageLimitEvent limit = Assert.IsType<UsageLimitEvent>(StreamJsonParser.Parse(line));
+
+        Assert.Equal(reached, limit.Reached);
+    }
+
+    [Theory]
+    [InlineData("""{"type":"rate_limit_event"}""")]
+    [InlineData("""{"type":"rate_limit_event","rate_limit_info":"rejected"}""")]
+    [InlineData("""{"type":"assistant","api_error":"rate_limit"}""")]
+    public void MalformedLimitEventsCountAsActivity(string line)
+        => Assert.IsType<ActivityEvent>(StreamJsonParser.Parse(line));
+
+    [Theory]
+    [InlineData("-1")]
+    [InlineData("1e300")]
+    [InlineData("\"1800003600\"")]
+    public void AResetTimeOutOfRangeIsLeftUnknown(string resetsAt)
+    {
+        var limit = (UsageLimitEvent)StreamJsonParser.Parse($$$"""{"type":"rate_limit_event","rate_limit_info":{"status":"rejected","resetsAt":{{{resetsAt}}}}}""")!;
+
+        Assert.Null(limit.ResetsAt);
+    }
+
+    [Fact]
     public void BlankAndUnknownTypesNeverThrowAndNeverProduceResults()
     {
         List<ClaudeStreamEvent> events = Parse("streamjson/unknown_and_blank.jsonl");

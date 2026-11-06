@@ -85,6 +85,27 @@ public static partial class ClaudeCommand
     }
 
     /// <summary>
+    /// Returns the first additional argument that picks the Claude Code session
+    /// to run in (continue, resume, a session identifier), or null. A resume
+    /// after the usage limit names the session itself.
+    /// </summary>
+    public static string? FindSessionArgument(IReadOnlyList<string> extraArguments)
+    {
+        foreach (string argument in extraArguments)
+        {
+            string name = argument.Split('=', 2)[0];
+            // -c and -r are the short forms of --continue and --resume.
+            if (name is "--continue" or "--resume" or "--session-id" or "--fork-session"
+                || (ShortFlagGroup().IsMatch(name) && (name.Contains('c', StringComparison.Ordinal) || name.Contains('r', StringComparison.Ordinal))))
+            {
+                return argument;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// True when the launch would turn off Claude Code's permission checks,
     /// which calls for an explicit confirmation every time.
     /// </summary>

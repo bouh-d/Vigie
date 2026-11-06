@@ -58,6 +58,54 @@ public static class ClaudeNarration
     public static string TaskIdle(int processId)
         => $"Claude Code (PID {processId}) has done nothing for {(int)ClaudeProcessMonitor.TaskIdleLimit.TotalMinutes} min: the task counts as finished.";
 
+    public static string UsageLimitReached(UsageLimitEvent? limit, DateTimeOffset now)
+    {
+        string reset = limit?.ResetsAt is DateTimeOffset at ? $", it resets at {ClockTime(at, now)}" : string.Empty;
+        return $"Claude Code stopped: {LimitName(limit?.LimitType)} reached{reset}.";
+    }
+
+    public static string ResumeScheduled(DateTimeOffset resumeAt, DateTimeOffset now)
+        => $"The task will resume at {ClockTime(resumeAt, now)}.";
+
+    public static string ResumeRefused(ResumePlan plan) => plan.Refusal switch
+    {
+        ResumeRefusal.TooManyResumes => $"Not resumed: the task was already resumed {UsageLimitResume.MaxResumes} times.",
+        ResumeRefusal.ResetUnknown => "Not resumed: Claude Code did not say when the limit resets.",
+        ResumeRefusal.ResetTooFar => $"Not resumed: the limit resets in more than {(int)UsageLimitResume.MaxWait.TotalHours} hours.",
+        ResumeRefusal.NoSession => "Not resumed: no keep-awake session is running.",
+        ResumeRefusal.SessionEndsFirst => "Not resumed: the keep-awake session ends before the limit resets.",
+        ResumeRefusal.SessionUnknown => "Not resumed: Claude Code did not report its session.",
+        _ => $"Not resumed: the extra argument {plan.Argument} already picks a session.",
+    };
+
+    public static string Resuming(string sessionId) => $"Usage limit reset: resuming Claude Code session {sessionId}.";
+
+    public static string ResumeCancelled(ResumeCancellation reason) => reason switch
+    {
+        ResumeCancellation.Interrupted => "Resume cancelled at your request.",
+        ResumeCancellation.NewTask => "Resume cancelled: another task was started.",
+        ResumeCancellation.SessionEnded => "Resume cancelled: the keep-awake session ended.",
+        _ => "Resume cancelled: the option was turned off.",
+    };
+
+    /// <param name="cause">Why the launch failed, or null when Claude Code was not found.</param>
+    public static string ResumeFailed(string? cause) => $"The task could not be resumed: {cause ?? "Claude Code was not found."}";
+
+    /// <summary>A local time of day, with the date when it is not today.</summary>
+    public static string ClockTime(DateTimeOffset at, DateTimeOffset now)
+    {
+        DateTimeOffset local = at.ToLocalTime();
+        string format = local.Date == now.ToLocalTime().Date ? "HH:mm" : "d MMM HH:mm";
+        return local.ToString(format, CultureInfo.InvariantCulture);
+    }
+
+    private static string LimitName(string? limitType) => limitType switch
+    {
+        "five_hour" => "5-hour limit",
+        { } type when type.StartsWith("seven_day", StringComparison.Ordinal) => "weekly limit",
+        _ => "usage limit",
+    };
+
     public static string CandidateRejected(RejectedCandidate candidate) => candidate.Reason switch
     {
         CandidateRejection.GraphicalApplication => $"{candidate.Path} skipped: a graphical application, probably the Claude desktop app.",

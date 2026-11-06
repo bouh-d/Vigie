@@ -221,6 +221,12 @@
                        AutomationProperties.Name="{x:Static res:Strings.Claude_Args}" />
             </Grid>
 
+            <StackPanel Margin="0,0,0,10" Visibility="{Binding IsAutonomous, Converter={StaticResource BoolVis}}">
+              <CheckBox Content="{x:Static res:Strings.Opt_ResumeAfterLimit}" IsChecked="{Binding ResumeAfterUsageLimit}"
+                        AutomationProperties.AutomationId="ResumeAfterLimit" />
+              <TextBlock Text="{x:Static res:Strings.Opt_ResumeAfterLimitNote}" Style="{StaticResource Hint}" Margin="20,2,0,0" />
+            </StackPanel>
+
             <StackPanel Orientation="Horizontal">
               <Button Content="{x:Static res:Strings.Btn_Launch}" Command="{Binding LaunchClaudeCommand}" IsEnabled="{Binding CanLaunchClaude}"
                       Padding="16,6" Margin="0,0,8,0" AutomationProperties.AutomationId="LaunchClaude" />
