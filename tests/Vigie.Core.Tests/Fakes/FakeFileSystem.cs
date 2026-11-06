@@ -20,6 +20,12 @@ public sealed class FakeFileSystem : IFileSystem
     /// <summary>When set, every append fails as a full disk would.</summary>
     public bool FailAppends { get; set; }
 
+    /// <summary>When set, maps every path the code under test uses, the way
+    /// Windows keeps the writes of a process started from a packaged app in that
+    /// package's storage. <see cref="Write"/>, <see cref="Has"/> and
+    /// <see cref="Read"/> see the storage as it is.</summary>
+    public Func<string, string>? Redirect { get; set; }
+
     public void Write(string path, string contents) => _files[path] = Utf8.GetBytes(contents);
 
     public void WriteBytes(string path, byte[] contents) => _files[path] = contents;
@@ -30,24 +36,25 @@ public sealed class FakeFileSystem : IFileSystem
 
     public IReadOnlyCollection<string> Paths => _files.Keys;
 
-    public bool FileExists(string path) => _files.ContainsKey(path);
+    public bool FileExists(string path) => _files.ContainsKey(Map(path));
 
     public bool DirectoryExists(string path)
-        => _files.Keys.Any(p => p.StartsWith(WithSeparator(path), StringComparison.OrdinalIgnoreCase));
+        => _files.Keys.Any(p => p.StartsWith(WithSeparator(Map(path)), StringComparison.OrdinalIgnoreCase));
 
     public void CreateDirectory(string path)
     {
     }
 
-    public string ReadAllText(string path) => Read(path);
+    public string ReadAllText(string path) => Read(Map(path));
 
     public Stream OpenRead(string path)
-        => _files.TryGetValue(path, out byte[]? bytes)
+        => _files.TryGetValue(Map(path), out byte[]? bytes)
             ? new MemoryStream(bytes, writable: false)
             : throw new FileNotFoundException(path);
 
     public void WriteAllTextAtomic(string path, string contents)
     {
+        path = Map(path);
         string temporaryPath = path + ".tmp";
         _files[temporaryPath] = Utf8.GetBytes(contents);
 
@@ -69,20 +76,22 @@ public sealed class FakeFileSystem : IFileSystem
             throw new IOException("There is not enough space on the disk.");
         }
 
+        path = Map(path);
         byte[] appended = Utf8.GetBytes(contents);
         _files[path] = _files.TryGetValue(path, out byte[]? existing) ? [.. existing, .. appended] : appended;
     }
 
     public Stream OpenAppend(string path)
     {
-        var stream = new AppendStream(this, path);
+        var stream = new AppendStream(this, Map(path));
         return stream;
     }
 
-    public void Delete(string path) => _files.Remove(path);
+    public void Delete(string path) => _files.Remove(Map(path));
 
     public IReadOnlyList<string> GetDirectories(string directory)
     {
+        directory = Map(directory);
         string prefix = WithSeparator(directory);
         return _files.Keys
             .Where(p => p.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
@@ -93,20 +102,24 @@ public sealed class FakeFileSystem : IFileSystem
 
     public void DeleteDirectory(string path, bool recursive)
     {
-        string prefix = WithSeparator(path);
+        string prefix = WithSeparator(Map(path));
         foreach (string key in _files.Keys.Where(p => p.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToList())
         {
             _files.Remove(key);
         }
     }
 
-    public long GetFileSize(string path) => _files[path].Length;
+    public long GetFileSize(string path) => _files[Map(path)].Length;
 
     public void Move(string sourcePath, string destinationPath, bool overwrite)
     {
+        sourcePath = Map(sourcePath);
+        destinationPath = Map(destinationPath);
         _files[destinationPath] = _files[sourcePath];
         _files.Remove(sourcePath);
     }
+
+    private string Map(string path) => Redirect?.Invoke(path) ?? path;
 
     private static string WithSeparator(string directory)
         => directory.EndsWith(Path.DirectorySeparatorChar) ? directory : directory + Path.DirectorySeparatorChar;

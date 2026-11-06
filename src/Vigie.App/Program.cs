@@ -1,8 +1,15 @@
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Threading;
+using System.Windows;
+using Vigie.App.Resources;
 using Vigie.Core.Logging;
+using Vigie.Core.Platform;
 using Vigie.Core.Power;
 using Vigie.Core.Session;
+using Vigie.Core.Storage;
 
 namespace Vigie.App;
 
@@ -36,6 +43,11 @@ public static class Program
         {
             SignalExistingInstance();
             return 0;
+        }
+
+        if (StartOutsideRedirectingPackage(mutex) is int exitCode)
+        {
+            return exitCode;
         }
 
         var app = new App();
@@ -82,6 +94,51 @@ public static class Program
                 services.Log.Error(SessionNarration.JournalUnreadable());
                 break;
         }
+    }
+
+    // A Vigie started from inside a packaged app, such as the Claude desktop
+    // app, would keep its restore journal and its sign-in entry in that
+    // package's storage, out of reach of a later Vigie and of Windows. Explorer
+    // starts it again outside; if it is still redirected right after, or the
+    // relaunch cannot be made, it says so and stops instead of looping.
+    private static int? StartOutsideRedirectingPackage(Mutex singleInstance)
+    {
+        var fileSystem = new SystemFileSystem();
+        string localAppData = new SystemEnvironment().LocalApplicationData;
+        string? package = PackageRedirection.Detect(fileSystem, localAppData);
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        StartPlacement placement = PackageRedirection.Decide(package, PackageRedirection.ReadLastRelaunch(fileSystem, localAppData), now);
+        if (placement == StartPlacement.Run)
+        {
+            return null;
+        }
+
+        // The instance Explorer starts must find the single-instance mutex free.
+        singleInstance.ReleaseMutex();
+        singleInstance.Close();
+
+        if (placement == StartPlacement.Relaunch && Environment.ProcessPath is string path)
+        {
+            try
+            {
+                PackageRedirection.RecordRelaunch(fileSystem, now, localAppData);
+                var explorer = new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe"))
+                {
+                    UseShellExecute = false,
+                };
+                explorer.ArgumentList.Add(path);
+                Process.Start(explorer)?.Dispose();
+                return 0;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or Win32Exception)
+            {
+                // Without the marker a failed relaunch would loop, and without
+                // Explorer there is no relaunch: both end in the message.
+            }
+        }
+
+        MessageBox.Show(Strings.Format(Strings.Dialog_RedirectedStart, package), Strings.AppTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+        return 1;
     }
 
     private static void SignalExistingInstance()

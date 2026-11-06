@@ -125,6 +125,7 @@
   <data name="Dialog_StopQuit" xml:space="preserve"><value>Stop the session and quit</value></data>
   <data name="Dialog_RequestsBlockedTitle" xml:space="preserve"><value>Cannot start</value></data>
   <data name="Dialog_StartFailed" xml:space="preserve"><value>The session could not start: {0}</value></data>
+  <data name="Dialog_RedirectedStart" xml:space="preserve"><value>Vigie cannot run from inside another app ({0}): Windows would keep its restore records in that app, where the safety nets cannot reach them. Start Vigie from its shortcut or from File Explorer.</value></data>
   <data name="Dialog_UnrestoredJournal" xml:space="preserve"><value>A previous session left power settings that could not be restored. Run "Vigie.exe --restore" or follow the manual steps in the README, then try again.</value></data>
   <data name="Dialog_InvalidOptions" xml:space="preserve"><value>Check the options: duration from 5 minutes to 24 hours, task mode limit from 1 to 24 hours, battery threshold from 10 to 50%.</value></data>
   <data name="Dialog_ShortcutTaken" xml:space="preserve"><value>Another application already uses {0}. Choose another shortcut in the advanced settings.</value></data>

@@ -261,6 +261,8 @@ public static class Strings
 
     public static string Dialog_StartFailed => Get("Dialog_StartFailed");
 
+    public static string Dialog_RedirectedStart => Get("Dialog_RedirectedStart");
+
     public static string Dialog_UnrestoredJournal => Get("Dialog_UnrestoredJournal");
 
     public static string Dialog_InvalidOptions => Get("Dialog_InvalidOptions");
