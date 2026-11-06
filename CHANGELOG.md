@@ -6,42 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added
-
-- An activity lock: during a session, after 3 seconds without activity, the
-  first mouse movement or key press locks the PC or puts it to sleep. A shortcut
-  the user chooses turns it off and on.
-- An option, off by default, to resume an autonomous task stopped by the usage
-  limit once the limit resets. Vigie resumes the task's Claude Code session and
-  keeps the PC awake while it waits, within the keep-awake session.
-- The window's choices, including the shortcut, are kept between launches.
-- The log names the sleep model (Modern Standby or S3) at startup.
-
-### Changed
-
-- The interface and the log are in English.
-- The window shows only what a session needs; Claude Code, the advanced
-  settings and the log are folded away below it.
-- The Modern Standby notice appears on battery only, where it applies.
-- The manual test plan reads the values with `powercfg /qh`, which also lists
-  settings a laptop hides.
-
-### Fixed
-
-- The battery charge is shown on AC power as well as on battery.
-- Claude Code sessions that wait for their next prompt, such as tabs of the
-  Claude desktop app, are shown as idle instead of running. In task mode, such
-  a session counts as finished after 10 minutes without activity instead of
-  keeping the PC awake until the cap.
-
-## [0.1.0]
+## [0.1.0] - 2026-11-06
 
 ### Added
 
 - Fixed-duration wake sessions (15 minutes, 1, 2 or 4 hours, or a custom value
   from 5 minutes to 24 hours) that prevent idle sleep and hibernation.
-- A "until the Claude Code task finishes" mode that follows a process and stops
-  two minutes after it exits, with an adjustable safety cap.
+- A mode that lasts until the Claude Code task finishes: it follows a process
+  and stops two minutes after it exits, with an adjustable safety cap. A session
+  that waits for its next prompt, such as a tab of the Claude desktop app,
+  counts as finished after 10 minutes without activity.
 - Lid-close handling: the lid action is set to *Do nothing* during a session and
   restored to its exact previous value afterwards.
 - A restore journal with atomic writes and several safety nets (a watchdog
@@ -52,11 +26,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   session so keep-awake requests are not dropped on battery, and an advanced
   compatibility option holds a display request while the lid is closed for
   laptops that sleep when the screen turns off.
-- Claude Code integration: detection of running processes, launch in autonomous
-  or interactive mode, stream-json parsing, and a graceful interrupt.
+- Claude Code integration: detection of running processes, shown as working or
+  idle, launch in autonomous or interactive mode, stream-json parsing, and a
+  graceful interrupt.
+- An option, off by default, to resume an autonomous task stopped by the usage
+  limit once the limit resets.
+- An activity lock: during a session, after 3 seconds without activity, the
+  first mouse movement or key press locks the PC or puts it to sleep. A shortcut
+  the user chooses turns it off and on.
 - Battery monitoring with a configurable stop threshold, lock on lid close, and
   an optional sleep at the end of a session.
-- A journal shown in the interface and written to a rotating local file.
+- A log shown in the window and written to a rotating local file.
+- The window's choices, including the shortcut, are kept between launches.
 - End-to-end restore checks that run the published executable on Windows in
   continuous integration.
 
