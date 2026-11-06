@@ -8,8 +8,9 @@ shutdown.
 
 > This file is also available in French: [README.fr.md](README.fr.md).
 
-<!-- Screenshot: docs/screenshot.png. The restore checks in continuous
-     integration take one of a running session (artifact "restore-checks"). -->
+<p align="center">
+  <img src="docs/screenshot.png" width="550" alt="Vigie during a four-hour session, with the lid option on and Claude Code working">
+</p>
 
 ## What Vigie cannot do
 

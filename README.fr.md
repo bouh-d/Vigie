@@ -8,9 +8,9 @@ de la session, même après un plantage ou un arrêt forcé.
 
 > English version: [README.md](README.md). L'interface de Vigie est en anglais.
 
-<!-- Capture d'écran : docs/screenshot.png. Les vérifications de restauration
-     de l'intégration continue en prennent une pendant une session
-     (artefact « restore-checks »). -->
+<p align="center">
+  <img src="docs/screenshot.png" width="550" alt="Vigie pendant une session de quatre heures, capot géré et Claude Code au travail">
+</p>
 
 ## Ce que Vigie ne peut pas faire
 
