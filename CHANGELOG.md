@@ -11,6 +11,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - An activity lock: during a session, after 3 seconds without activity, the
   first mouse movement or key press locks the PC or puts it to sleep. A shortcut
   the user chooses turns it off and on.
+- An option, off by default, to resume an autonomous task stopped by the usage
+  limit once the limit resets. Vigie resumes the task's Claude Code session and
+  keeps the PC awake while it waits, within the keep-awake session.
 - The window's choices, including the shortcut, are kept between launches.
 - The log names the sleep model (Modern Standby or S3) at startup.
 

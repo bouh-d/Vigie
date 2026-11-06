@@ -158,12 +158,43 @@ resembles a keylogger:
   disarmed until the shortcut arms it again, so the user is not locked out a
   second time while reading the screen after signing in.
 
+## Resuming after the usage limit
+
+Claude Code reports the account's usage limit in its stream-json output. A
+`rate_limit_event` carries its state (`status`, `resetsAt` in seconds since
+1970, `rateLimitType`). When a request is refused, the assistant message and
+the result both carry `api_error: "usage_limit_reached"`, and the assistant
+message repeats the record under `api_error_params.rate_limit_info`.
+`api_error` is marked internal and may change, so a run also counts as stopped
+by the limit when it ends in error after a `rate_limit_event` whose status is
+`rejected` and that extra usage does not cover.
+
+The option is off by default because waiting keeps the PC awake. When it is on,
+Vigie plans the resume when the process exits:
+
+- at the reset time plus one minute, so a clock slightly ahead of the server's
+  does not resume too early;
+- only within the keep-awake session: in task mode the waiting task counts as
+  running, and a resume that would fall after the session's end, or after the
+  cap, is not planned;
+- not when the reset is more than 6 hours away. A 5-hour limit fits; a weekly
+  limit usually does not, and waiting for it would hold the PC for days;
+- with `claude -p --resume <session id>`, the identifier from the run's `init`
+  event, so the task keeps its history. Extra arguments that already pick a
+  session (`--continue`, `--resume`, `--session-id`, `--fork-session`) prevent
+  the resume rather than conflict with it;
+- at most 3 times per task, so a limit that keeps refusing does not loop.
+
+The plan lives in memory only: closing Vigie, interrupting the task, starting
+another task or ending the session cancels it, and the log says why.
+
 ## How it is tested
 
 - Unit tests cover the logic with in-memory fakes: the journal and its
   invariant, the restore rules, the state machine and its rollbacks, the
   deadline across sleep, the stream-json reader, the executable checks, the
-  argument list, the activity lock and the settings file.
+  argument list, the activity lock, the resume after the usage limit and the
+  settings file.
 - On every push, continuous integration publishes the executable and runs it in
   a Windows desktop session (`tests/e2e/restore-checks.ps1`): it starts a
   session through UI Automation, checks the lid action and the power request

@@ -95,6 +95,21 @@ leave. Type it before touching anything else. To change it, click the shortcut
 field under **Advanced settings** and press the new keys: two of Ctrl, Alt and
 Shift, plus a letter, a digit or F1 to F24.
 
+### Resume after the usage limit
+
+When an autonomous task started from Vigie stops because your Claude usage
+limit is reached, Vigie can start it again once the limit resets. Tick
+**Resume after the usage limit resets** under **Claude Code**. It is off by
+default because the PC stays awake until the reset, which uses battery.
+
+A minute after the reset time Claude Code reports, Vigie resumes the task's own
+Claude Code session and asks it to continue. It waits only during the
+keep-awake session, so choose **Until the Claude Code task ends**: the task
+then counts as running while it waits, up to the cap. Vigie does not wait for a
+limit that resets more than 6 hours later, such as a weekly one, and resumes a
+task at most 3 times. **Interrupt**, starting another task, ending the session
+or closing Vigie cancels the wait.
+
 ## What Vigie changes, and how it restores it
 
 During a session Vigie changes at most three power-scheme values, records the

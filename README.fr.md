@@ -100,6 +100,23 @@ le champ du raccourci dans **Advanced settings** et tapez la nouvelle
 combinaison : deux touches parmi Ctrl, Alt et Maj (Shift), plus une lettre, un
 chiffre ou F1 à F24.
 
+### Reprise après la limite d'utilisation
+
+Quand une tâche autonome lancée depuis Vigie s'arrête parce que votre limite
+d'utilisation de Claude est atteinte, Vigie peut la relancer une fois la limite
+réinitialisée. Cochez **Resume after the usage limit resets** dans
+**Claude Code**. L'option est décochée par défaut, car le PC reste éveillé
+jusqu'à la réinitialisation, ce qui consomme de la batterie.
+
+Une minute après l'heure de réinitialisation annoncée par Claude Code, Vigie
+reprend la session Claude Code de la tâche et lui demande de continuer. Vigie
+n'attend que pendant la session d'éveil : choisissez donc
+**Until the Claude Code task ends**, la tâche compte alors comme en cours
+pendant l'attente, jusqu'au plafond. Vigie n'attend pas une limite qui se
+réinitialise plus de 6 heures plus tard, comme une limite hebdomadaire, et
+reprend une tâche au plus 3 fois. **Interrupt**, le lancement d'une autre tâche,
+la fin de la session ou la fermeture de Vigie annulent l'attente.
+
 ## Ce que Vigie modifie, et comment elle le rétablit
 
 Pendant une session, Vigie modifie au plus trois valeurs du mode d'alimentation,
