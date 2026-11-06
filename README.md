@@ -95,6 +95,10 @@ session. After 3 seconds without activity, the first mouse movement or key
 press locks the PC, and Claude Code keeps running. Under **Advanced settings**
 you can choose sleep instead, which pauses Claude Code.
 
+It combines with **Keep the screen on**: the screen stays on during the session,
+so you can follow Claude Code from across the room, and since Windows then no
+longer locks the PC by itself, the activity lock does it at the first touch.
+
 Ctrl + Alt + V turns the lock off when you come back and on again when you
 leave. Type it before touching anything else. To change it, click the shortcut
 field under **Advanced settings** and press the new keys: two of Ctrl, Alt and

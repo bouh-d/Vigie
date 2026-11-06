@@ -98,6 +98,10 @@ souris ou appui sur une touche verrouille le PC, et Claude Code continue. Dans
 **Advanced settings**, vous pouvez choisir la mise en veille à la place : elle met
 Claude Code en pause.
 
+Il se combine avec **Keep the screen on** : l'écran reste allumé pendant la
+session, pour suivre Claude Code de loin, et comme Windows ne verrouille alors
+plus le PC de lui-même, le verrou d'activité s'en charge au premier contact.
+
 Ctrl + Alt + V désactive le verrou à votre retour et le réactive quand vous
 repartez. Tapez-le avant de toucher à autre chose. Pour le changer, cliquez dans
 le champ du raccourci dans **Advanced settings** et tapez la nouvelle

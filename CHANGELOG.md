@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Keep the screen on** moved from the advanced settings to the main part of
+  the window, next to the activity lock, which locks the PC that Windows no
+  longer locks by itself while the screen is held on.
+
 ### Fixed
 
 - A command Claude Code runs in the background, such as a local server or a
