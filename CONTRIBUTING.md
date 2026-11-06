@@ -22,17 +22,17 @@ desktop and checks that the power settings come back after Stop and after Vigie
 is killed. CI runs it on every push. It changes the lid action of the active power
 scheme, so only run it yourself on a machine you do not mind changing.
 
-Anything that needs real hardware — lid close, sleep, battery behaviour — belongs
+Anything that needs real hardware (lid close, sleep, battery behaviour) belongs
 in the manual test plan in [docs/TESTS.md](docs/TESTS.md).
 
 ## Project layout
 
-- `src/Vigie.Core` — the logic, with no WPF dependency. `Interop` holds the
+- `src/Vigie.Core`: the logic, with no WPF dependency. `Interop` holds the
   P/Invoke declarations; `Platform` the OS-service interfaces and their Win32
   implementations; `Power`, `ClaudeCode`, `Session`, `Logging` and `Storage`
   the features.
-- `src/Vigie.App` — the WPF interface.
-- `tests/Vigie.Core.Tests` — xUnit tests.
+- `src/Vigie.App`: the WPF interface.
+- `tests/Vigie.Core.Tests`: xUnit tests.
 
 See [docs/DESIGN.md](docs/DESIGN.md) for the power strategy and the restore
 safety nets.
@@ -41,8 +41,8 @@ safety nets.
 
 - Warnings are treated as errors; keep the build clean.
 - Run `dotnet format` before committing.
-- Comments explain a *why* — a Windows constraint, a pitfall, a link to the
-  Microsoft documentation — not what the next line does.
+- Comments explain a *why* (a Windows constraint, a pitfall, a link to the
+  Microsoft documentation), not what the next line does.
 - Everything is in English: interface text, log lines, code, identifiers,
   comments and commit messages. Only `README.fr.md` is in French.
 

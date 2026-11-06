@@ -1,9 +1,10 @@
 # Vigie
 
-Vigie garde un ordinateur portable Windows éveillé pendant qu'une tâche Claude
-Code s'exécute, y compris capot fermé. Elle rétablit chaque réglage
-d'alimentation qu'elle modifie à la fin de la session, même après un plantage ou
-un arrêt forcé.
+Vigie garde un ordinateur portable Windows 10 ou 11 éveillé pendant qu'une
+tâche Claude Code s'exécute, y compris capot fermé. Lancez une longue tâche,
+fermez le capot et partez : le portable ne se met pas en veille avant la fin de
+la tâche. Chaque réglage d'alimentation que Vigie modifie est rétabli à la fin
+de la session, même après un plantage ou un arrêt forcé.
 
 > English version: [README.md](README.md). L'interface de Vigie est en anglais.
 
@@ -135,9 +136,9 @@ secteur, au bouton d'alimentation, à la batterie critique, à la veille prolong
 ni au mode d'alimentation actif.
 
 Les réglages sont rétablis à la fin du minuteur, sur **Stop**, à la fermeture
-de Vigie, à la fermeture de session Windows, sur exception non gérée, et — si le
-processus est tué — par un processus témoin, ou à défaut au lancement suivant ou
-à l'ouverture de session suivante.
+de Vigie, à la fermeture de session Windows et sur exception non gérée. Si le
+processus est tué, un processus témoin les rétablit, ou à défaut le lancement
+suivant ou l'ouverture de session suivante.
 
 Si une session a été interrompue sans rétablir les réglages, lancez :
 

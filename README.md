@@ -1,8 +1,10 @@
 # Vigie
 
-Vigie keeps a Windows laptop awake while a Claude Code task runs, including with
-the lid closed. It restores every power setting it changes when the session
-ends, including after a crash or a forced shutdown.
+Vigie keeps a Windows 10 or 11 laptop awake while a Claude Code task runs,
+including with the lid closed. Start a long task, close the lid and leave: the
+laptop does not go to sleep until the task is done. Every power setting Vigie
+changes is put back when the session ends, even after a crash or a forced
+shutdown.
 
 > This file is also available in French: [README.fr.md](README.fr.md).
 
@@ -127,8 +129,8 @@ It never changes the display timeout, the AC sleep timeout, the power button,
 critical-battery behaviour, hibernation or the active power scheme.
 
 The settings are restored when the timer ends, on **Stop**, when Vigie closes,
-when Windows signs out, on an unhandled exception, and — if the process is
-killed — by a companion watchdog process or, failing that, at the next launch or
+when Windows signs out and on an unhandled exception. If the process is killed,
+a companion watchdog process restores them, or failing that the next launch or
 the next sign-in.
 
 If a session was interrupted and the settings were not restored, run:

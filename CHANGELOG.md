@@ -44,8 +44,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   two minutes after it exits, with an adjustable safety cap.
 - Lid-close handling: the lid action is set to *Do nothing* during a session and
   restored to its exact previous value afterwards.
-- A restore journal with atomic writes and several safety nets — a watchdog
-  process, a `RunOnce` entry and a startup check — so the power settings come
+- A restore journal with atomic writes and several safety nets (a watchdog
+  process, a `RunOnce` entry and a startup check), so the power settings come
   back even after a crash or a forced shutdown. Each restore is written to the
   log.
 - Modern Standby handling: the battery sleep timeout is neutralised for the

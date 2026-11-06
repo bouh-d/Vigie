@@ -6,10 +6,10 @@ Three things put a laptop to sleep, and they need different handling.
 
 1. **Idle timers** ("turn off the display after", "sleep after"). A power
    request (`PowerSetRequest(PowerRequestSystemRequired)`) suppresses them.
-2. **User actions** — closing the lid, the power button, Start > Sleep. No API
+2. **User actions**: closing the lid, the power button, Start > Sleep. No API
    blocks these; Windows ends power requests when they happen. Only the power
    scheme's *lid close action* changes what closing the lid does.
-3. **Protections** — critical battery, thermal shutdown, Windows Update restart.
+3. **Protections**: critical battery, thermal shutdown, Windows Update restart.
    Vigie never touches these.
 
 So Vigie holds a system power request for the whole session *and*, when asked to
@@ -22,8 +22,8 @@ Three consequences matter:
 
 - On battery, Windows ends "system required" requests five minutes after the
   sleep timeout. A request alone does not hold on battery. Vigie therefore sets
-  the battery sleep timeout to *Never* for the session on these machines — the
-  one extra value it changes — and restores it at the end.
+  the battery sleep timeout to *Never* for the session on these machines (the
+  one extra value it changes) and restores it at the end.
 - On AC the request holds, so the AC sleep timeout is left alone. Windows can
   still log that it entered Modern Standby (event 506, *Idle Timeout*) once
   that timeout passes; with the request held nothing is suspended, as a laptop
@@ -53,8 +53,8 @@ frozen; the difference is how long it slept.
 
 ## Changing settings without leaving a trace
 
-Vigie changes at most three values per power scheme — the lid action on AC and
-on battery, and the battery sleep timeout on Modern Standby — and follows one
+Vigie changes at most three values per power scheme (the lid action on AC and
+on battery, and the battery sleep timeout on Modern Standby) and follows one
 rule: write the journal before touching anything.
 
 `%LOCALAPPDATA%\Vigie\restore.json` is written atomically (temporary file,
@@ -75,17 +75,17 @@ and it would lose the user's changes if they edited the scheme mid-session.
 
 ## Restore safety nets, fastest to slowest
 
-1. **Normal end** — timer, stop, task finished, battery threshold, cap.
-2. **Vigie closing and Windows signing out** — `Application.SessionEnding`
+1. **Normal end**: timer, stop, task finished, battery threshold, cap.
+2. **Vigie closing and Windows signing out**: `Application.SessionEnding`
    restores before the process exits.
-3. **Unhandled exceptions** — the dispatcher, app-domain and task-scheduler
+3. **Unhandled exceptions**: the dispatcher, app-domain and task-scheduler
    handlers restore, then let the process terminate.
-4. **A watchdog process** — `Vigie.exe --watchdog <pid> <start>`, started without
+4. **A watchdog process**: `Vigie.exe --watchdog <pid> <start>`, started without
    a window when a session changes a setting. It waits for the Vigie instance to
    exit and restores if the journal is still `Applied`; it exits by itself on a
    clean end, signalled through a named event.
 5. **The next launch** of Vigie.
-6. **The next sign-in** — a `RunOnce` value runs `Vigie.exe --restore-if-dirty`,
+6. **The next sign-in**: a `RunOnce` value runs `Vigie.exe --restore-if-dirty`,
    which restores only if the instance named in the journal is no longer running.
 
 A manual `Vigie.exe --restore`, and the equivalent `powercfg` procedure in the

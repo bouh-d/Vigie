@@ -28,13 +28,13 @@ Vigie with the lid closed. Then T1 and T2.
 ## Verification tools
 
 - `powercfg /qh SCHEME_CURRENT SUB_BUTTONS LIDACTION` and
-  `powercfg /qh SCHEME_CURRENT SUB_SLEEP STANDBYIDLE` — the values before and
+  `powercfg /qh SCHEME_CURRENT SUB_SLEEP STANDBYIDLE`: the values before and
   after a session.
-- `powercfg /a` — whether the machine supports Modern Standby (an S0 low-power
+- `powercfg /a`: whether the machine supports Modern Standby (an S0 low-power
   idle state is listed as available).
-- `powercfg /requests` in an administrator terminal — Vigie's request and its
+- `powercfg /requests` in an administrator terminal: Vigie's request and its
   reason.
-- `powercfg /sleepstudy` in an administrator terminal on Modern Standby — the
+- `powercfg /sleepstudy` in an administrator terminal on Modern Standby: the
   history of sleep sessions.
 - System log, Kernel-Power source: 42 (enter sleep), 107 (resume), 506 and 507
   (enter and exit Modern Standby):
