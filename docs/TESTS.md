@@ -78,6 +78,7 @@ Vigie with the lid closed. Then T1 and T2.
 | T23 | Activity lock set to sleep: start a session, lock Windows with Win + L within 3 seconds, then press a key on the lock screen | The PC does not sleep |
 | T24 | Task mode on a Claude desktop app session: let its task finish and leave the tab open | Listed as idle about 2 min later; the wake session ends about 12 min after the task, with a log line naming the idle task |
 | T25 | Task mode, **Resume after the usage limit resets** ticked: an autonomous task started from Vigie reaches the 5-hour limit | Log lines with the reset time and the resume time; the session keeps running; a minute after the reset the task resumes with the same Claude Code session ID in the log |
+| T26 | Task mode on a Claude Code session that starts a quiet background command (for example a 15-minute wait) and goes back to waiting for a prompt | Listed as working while the command runs, and the wake session goes on past 10 minutes; idle about 2 min after the command ends |
 
 A value changed during a session is re-applied once at the next periodic check,
 which runs every minute; only a second change makes Vigie stop managing it.

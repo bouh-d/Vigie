@@ -119,12 +119,24 @@ option is opt-in.
 An open `claude.exe` is not a running task: a terminal session, or a tab of the
 Claude desktop app, keeps its process open while it waits for the next prompt.
 Vigie measures the CPU time of each Claude Code process and of everything it
-started (tool commands, shells), and counts as work either 0.6 s of CPU within
-30 s or a command starting or ending. Measured on a laptop, a session waiting
-for a prompt uses up to about 50 ms every 3 s; one at work, several times more.
+started (tool commands, shells), and counts as work 0.6 s of CPU within 30 s, a
+command starting or ending, or a command still running. Measured on a laptop, a
+session waiting for a prompt uses up to about 50 ms every 3 s; one at work,
+several times more.
 
+- A command still running counts however little CPU it uses: a background task
+  waiting on CI or serving a page uses next to none, yet Claude Code is not
+  done. A laptop check had a quiet 5-minute background task keep its session
+  working throughout, at 50 to 350 ms of CPU per 15 s.
+- What Claude Code starts in its first 30 seconds is one of its helpers, such
+  as an MCP server, and lives as long as the session, so it does not count, nor
+  does anything it starts. Only processes the session starts later are its
+  commands. A helper started later, such as an MCP server reconnected
+  mid-session, is taken for a command: the session shows as working until it
+  ends, within the task mode's cap.
 - A process shows as idle after two minutes without work. One seen for the
-  first time shows as idle once a full 30-second window has passed quietly.
+  first time shows as idle once a full 30-second window has passed quietly,
+  unless a command is running.
 - The process tree comes from a Toolhelp snapshot. A parent identifier outlives
   its process and can be reused, so a child older than its parent is left out.
 - The task mode ends when the followed process exits, or when it has done

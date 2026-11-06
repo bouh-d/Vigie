@@ -76,7 +76,9 @@ session can stop to ask for permission, and nobody is there to answer.
 The **Claude Code** section shows each process as working or idle. A session
 that stays open after its task, such as a tab of the Claude desktop app, shows
 as idle once it has done nothing for about two minutes. When a session follows
-such a task, the task counts as finished after 10 minutes without activity.
+such a task, the task counts as finished after 10 minutes without activity. A
+command Claude Code started in the background, such as a local server or a wait
+on a build, keeps its session working as long as it runs, even when it is quiet.
 
 **Advanced settings** holds the other options. Vigie keeps your choices in
 `%LOCALAPPDATA%\Vigie\settings.json`.

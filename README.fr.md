@@ -77,7 +77,10 @@ La section **Claude Code** indique pour chaque processus s'il travaille
 (*working*) ou attend (*idle*). Une session qui reste ouverte après sa tâche,
 comme un onglet de l'application de bureau Claude, passe en attente après
 environ deux minutes sans activité. Quand une session d'éveil suit une telle
-tâche, la tâche compte comme terminée après 10 minutes sans activité.
+tâche, la tâche compte comme terminée après 10 minutes sans activité. Une
+commande que Claude Code a lancée en arrière-plan, comme un serveur local ou
+l'attente d'une compilation, garde sa session au travail tant qu'elle tourne,
+même silencieuse.
 
 **Advanced settings** regroupe les autres options. Vigie garde vos choix dans
 `%LOCALAPPDATA%\Vigie\settings.json`.

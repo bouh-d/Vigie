@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- A command Claude Code runs in the background, such as a local server or a
+  wait on a build, keeps its session working even when it uses almost no CPU.
+  Task mode no longer ends while such a command runs.
+
 ## [0.1.0] - 2026-11-06
 
 ### Added
