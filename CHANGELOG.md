@@ -14,6 +14,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Started from inside another app, such as a Claude Code session of the Claude
+  desktop app, Vigie starts itself again through Explorer. That app kept
+  Vigie's files and sign-in entry in its own storage, where the restore safety
+  nets could not find them.
 - A command Claude Code runs in the background, such as a local server or a
   wait on a build, keeps its session working even when it uses almost no CPU.
   Task mode no longer ends while such a command runs.

@@ -194,6 +194,11 @@ entrée de démarrage est la valeur `RunOnce` décrite ci-dessus. Les deux exist
 pour que les réglages soient rétablis si Vigie est tuée. Aucune obfuscation,
 aucune compression d'exécutable, aucune injection de processus.
 
+Lancée depuis une autre application, comme une session Claude Code de
+l'application de bureau Claude, Vigie demande à l'Explorateur de la relancer et
+se ferme : cette application garderait sinon les fichiers de Vigie et sa valeur
+`RunOnce` dans son propre stockage.
+
 Le verrou d'activité lit seulement l'heure de la dernière saisie et si les
 touches de modification de son raccourci sont enfoncées. Il n'installe aucun hook
 clavier ou souris et n'enregistre aucune frappe. Son raccourci n'est enregistré

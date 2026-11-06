@@ -183,6 +183,10 @@ Vigie starts is the restore watchdog, and the only startup entry is the `RunOnce
 value described above. Both exist so the power settings are restored if Vigie is
 killed. There is no obfuscation, no executable packing and no process injection.
 
+Started from inside another app, such as a Claude Code session of the Claude
+desktop app, Vigie asks Explorer to start it again and exits: that app would
+otherwise keep Vigie's files and its `RunOnce` value in its own storage.
+
 The activity lock reads only the time of the last input and whether its
 shortcut's modifier keys are held. It installs no keyboard or mouse hook and
 records no keystroke. Its shortcut is registered with `RegisterHotKey` during a

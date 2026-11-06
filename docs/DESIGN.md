@@ -97,6 +97,33 @@ A journal that cannot be read, or whose values could not all be put back, blocks
 the next session until it is dealt with: writing a new journal over it would lose
 the originals it holds.
 
+## Started from inside another app
+
+A process started by a packaged app, such as a Claude Code session of the
+Claude desktop app running a command, can have its writes under
+`%LOCALAPPDATA%` and `HKCU` kept in that package's private storage
+(`%LOCALAPPDATA%\Packages\<package>\LocalCache`). A laptop check showed both: a
+file written from a Claude desktop session landed in the Claude package's
+`LocalCache`, and a value it wrote under `HKCU` was invisible to a process
+started from Explorer. The restore journal and the `RunOnce` entry would then
+be out of reach of the next launch and of Windows at sign-in.
+
+Such a process has no package identity of its own (`GetCurrentPackageFullName`
+reports none), so Vigie looks for the redirection itself at start-up: it writes
+an empty probe file under `%LOCALAPPDATA%\Vigie` and looks for it in each
+package's `LocalCache`. When it turns up there, Vigie asks Explorer, whose
+processes are not redirected, to start it again, and exits.
+
+- A marker kept in the same redirected storage prevents a loop: an instance
+  still redirected within 15 seconds of a relaunch says so and stops, asking to
+  be started from its shortcut.
+- The check runs only when no other instance is running, and the
+  single-instance mutex is released before the relaunch, so the new instance
+  can take it.
+- The command-line modes do not relaunch: Windows runs the sign-in restore
+  outside any package, and the watchdog is started by an instance that already
+  runs outside.
+
 ## Degraded mode
 
 When the lid action is enforced by group policy, or writing it is denied, or

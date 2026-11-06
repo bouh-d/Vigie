@@ -80,6 +80,7 @@ Vigie with the lid closed. Then T1 and T2.
 | T25 | Task mode, **Resume after the usage limit resets** ticked: an autonomous task started from Vigie reaches the 5-hour limit | Log lines with the reset time and the resume time; the session keeps running; a minute after the reset the task resumes with the same Claude Code session ID in the log |
 | T26 | Task mode on a Claude Code session that starts a quiet background command (for example a 15-minute wait) and goes back to waiting for a prompt | Listed as working while the command runs, and the wake session goes on past 10 minutes; idle about 2 min after the command ends |
 | T27 | **Keep the screen on** and the activity lock together, lid open: leave the PC untouched 5 minutes, then move the mouse | The screen stays on the whole time, then the first movement locks the PC |
+| T28 | Have a Claude Code session of the Claude desktop app run `Vigie.exe` | The window opens from a process whose parent is `explorer.exe`; its first log line is in `%LOCALAPPDATA%\Vigie\logs\vigie.log`, not under `%LOCALAPPDATA%\Packages\Claude_*\LocalCache` |
 
 A value changed during a session is re-applied once at the next periodic check,
 which runs every minute; only a second change makes Vigie stop managing it.
@@ -99,4 +100,5 @@ well, and on ARM64 if a machine is available.
 | --- | --- | --- | --- | --- | --- |
 | 2026-11-05 | Samsung 940XGK | Windows 11 Home x64, build 26200 | Modern Standby | T5, T6, T8 | Pass. T5: values identical after the timer ended. T6: restored by the watchdog 230 ms after the kill. T8: restored 390 ms after the relaunch, with the startup message. |
 | 2026-11-05 | Samsung 940XGK | Windows 11 Home x64, build 26200 | Modern Standby | T21, T22, T23 | Pass. T21: the first mouse movement locked the PC once the lock was on. T22: the shortcut turned the lock off and back on, with a notification each time. T23: with the sleep action, signing in on the lock screen did not put the PC to sleep. |
+| 2026-11-06 | Samsung 940XGK | Windows 11 Home x64, build 26200 | Modern Standby | T28 | Pass. Started from a Claude desktop session, Vigie relaunched through Explorer; its log line landed in the real `%LOCALAPPDATA%\Vigie`, and nothing new in the Claude package's storage. |
 | 2026-11-05 | Samsung 940XGK | Windows 11 Home x64, build 26200 | Modern Standby | T1, short form: lid closed 20 min on AC, no task | Pass. A process writing the time every 10 s ran without a pause (largest gap 11 s) and Vigie detected no sleep. Windows logged 506 (Idle Timeout) 3.5 min after the lid closed and 507 when it opened. |
