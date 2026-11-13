@@ -10,7 +10,10 @@ Three things put a laptop to sleep, and they need different handling.
    blocks these; Windows ends power requests when they happen. Only the power
    scheme's *lid close action* changes what closing the lid does.
 3. **Protections**: critical battery, thermal shutdown, Windows Update restart.
-   Vigie never touches these.
+   Vigie never touches these. With its own battery stop turned off, Windows'
+   critical-battery action is what ends a session on a draining battery; Vigie
+   reads it (`BATACTIONCRIT`, `BATLEVELCRIT`) to say so in the log, and warns
+   when a PC is set to do nothing, as it would then switch off abruptly.
 
 So Vigie holds a system power request for the whole session *and*, when asked to
 work with the lid closed, changes one power-scheme value: the lid close action.

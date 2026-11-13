@@ -81,6 +81,7 @@ Vigie with the lid closed. Then T1 and T2.
 | T26 | Task mode on a Claude Code session that starts a quiet background command (for example a 15-minute wait) and goes back to waiting for a prompt | Listed as working while the command runs, and the wake session goes on past 10 minutes; idle about 2 min after the command ends |
 | T27 | **Keep the screen on** and the activity lock together, lid open: leave the PC untouched 5 minutes, then move the mouse | The screen stays on the whole time, then the first movement locks the PC |
 | T28 | Have a Claude Code session of the Claude desktop app run `Vigie.exe` | The window opens from a process whose parent is `explorer.exe`; its first log line is in `%LOCALAPPDATA%\Vigie\logs\vigie.log`, not under `%LOCALAPPDATA%\Packages\Claude_*\LocalCache` |
+| T29 | **Stop below** unticked, on battery, lid closed until the battery runs low | The log names Windows' critical action at start; the session goes on below 20 %; Windows applies its critical action (hibernation on most laptops); after plugging in and resuming, the session carries on or ends and restores as usual |
 
 A value changed during a session is re-applied once at the next periodic check,
 which runs every minute; only a second change makes Vigie stop managing it.

@@ -83,6 +83,12 @@ on a build, keeps its session working as long as it runs, even when it is quiet.
 **Advanced settings** holds the other options. Vigie keeps your choices in
 `%LOCALAPPDATA%\Vigie\settings.json`.
 
+On battery, Vigie ends the session at 20 % by default (**Stop below**). Untick
+it to use the battery to the end: the session then runs until Windows' own
+critical-battery action, which on most laptops hibernates the PC at a few
+percent, and the log says what your PC does. A heavy Claude Code task can empty
+a laptop battery in under two hours, so plug it in for a night run.
+
 If your laptop goes to sleep when the screen turns off despite the session, tick
 **Modern Standby compatibility** under **Advanced settings**. Vigie then also
 keeps the display active while the lid is closed, and always locks the session

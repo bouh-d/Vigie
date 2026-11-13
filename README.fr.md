@@ -85,6 +85,13 @@ même silencieuse.
 **Advanced settings** regroupe les autres options. Vigie garde vos choix dans
 `%LOCALAPPDATA%\Vigie\settings.json`.
 
+Sur batterie, Vigie arrête la session à 20 % par défaut (**Stop below**).
+Décochez-la pour utiliser la batterie jusqu'au bout : la session tourne alors
+jusqu'à l'action de Windows en batterie critique, qui sur la plupart des
+portables met le PC en veille prolongée à quelques pour cent, et le journal
+indique ce que fait votre PC. Une grosse tâche Claude Code peut vider une
+batterie en moins de deux heures : branchez le portable pour une nuit.
+
 Si votre portable se met en veille quand l'écran s'éteint malgré la session,
 cochez **Modern Standby compatibility** dans **Advanced settings**. Vigie garde
 alors aussi l'affichage actif tant que le capot est fermé, et verrouille toujours

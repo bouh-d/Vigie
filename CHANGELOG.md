@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Stop below** in the advanced settings can be unticked to use the battery to
+  the end: the session then runs until Windows' own critical-battery action,
+  which the log names when the session starts.
+
 ## [0.1.1] - 2026-11-06
 
 ### Changed
