@@ -25,6 +25,10 @@ public sealed record UserSettings
 
     public int BatteryThresholdPercent { get; init; } = 20;
 
+    /// <summary>On by default; off, the session runs until Windows' own
+    /// critical-battery action.</summary>
+    public bool StopOnLowBattery { get; init; } = true;
+
     public bool ModernStandbyCompatibility { get; init; }
 
     public bool ActivityLockEnabled { get; init; }

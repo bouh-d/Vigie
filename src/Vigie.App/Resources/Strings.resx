@@ -33,6 +33,7 @@
   <data name="Opt_SuspendAtEnd" xml:space="preserve"><value>Sleep at the end if the lid is closed</value></data>
   <data name="Opt_BatteryStopPrefix" xml:space="preserve"><value>Stop below</value></data>
   <data name="Opt_BatteryStopSuffix" xml:space="preserve"><value>% battery</value></data>
+  <data name="Opt_NoBatteryStopNote" xml:space="preserve"><value>Off: the session uses the battery until Windows itself acts on a critical battery (on most PCs it hibernates at a few percent). The log says what this PC does.</value></data>
   <data name="Opt_LidClosedNote" xml:space="preserve"><value>With the lid closed, put the laptop on a hard, open surface. Do not keep it in a bag during a session.</value></data>
   <data name="Opt_Advanced" xml:space="preserve"><value>Advanced settings</value></data>
   <data name="Opt_ModernStandbyCompat" xml:space="preserve"><value>Modern Standby compatibility</value></data>

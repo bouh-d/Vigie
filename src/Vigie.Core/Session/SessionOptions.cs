@@ -36,6 +36,10 @@ public sealed record SessionOptions
 
     public int BatteryStopThresholdPercent { get; init; } = 20;
 
+    /// <summary>When false, the battery never ends the session: Windows' own
+    /// critical-battery action (sleep, hibernate or shut down) takes over.</summary>
+    public bool StopOnLowBattery { get; init; } = true;
+
     /// <summary>
     /// For laptops that go to sleep when the screen turns off despite the
     /// keep-awake request: while the lid is closed a display request is held

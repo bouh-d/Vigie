@@ -26,6 +26,7 @@ public class UserSettingsStoreTests
             ActivityResponse = ActivityResponse.Sleep,
             ActivityShortcut = new Shortcut(ShortcutModifiers.Control | ShortcutModifiers.Shift, VkF9),
             ResumeAfterUsageLimit = true,
+            StopOnLowBattery = false,
         };
 
         store.Save(settings);
@@ -39,6 +40,7 @@ public class UserSettingsStoreTests
         var store = new UserSettingsStore(_fileSystem, SettingsPath);
         Assert.Equal(new UserSettings(), store.Load());
         Assert.False(store.Load().ResumeAfterUsageLimit);
+        Assert.True(store.Load().StopOnLowBattery);
 
         _fileSystem.Write(SettingsPath, "{ \"durationMinutes\": ");
 

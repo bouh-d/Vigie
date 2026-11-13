@@ -152,6 +152,9 @@ public sealed partial class MainViewModel : ObservableObject
     public partial int BatteryThreshold { get; set; } = 20;
 
     [ObservableProperty]
+    public partial bool StopOnLowBattery { get; set; } = true;
+
+    [ObservableProperty]
     public partial bool ModernStandbyCompatibility { get; set; }
 
     [ObservableProperty]
@@ -690,6 +693,7 @@ public sealed partial class MainViewModel : ObservableObject
             LockOnLidClose = LockOnLidClose,
             SuspendAtEndIfLidClosed = SuspendAtEnd,
             BatteryStopThresholdPercent = BatteryThreshold,
+            StopOnLowBattery = StopOnLowBattery,
             ModernStandbyCompatibility = ModernStandbyCompatibility,
         };
 
@@ -1072,6 +1076,7 @@ public sealed partial class MainViewModel : ObservableObject
         LockOnLidClose = settings.LockOnLidClose;
         SuspendAtEnd = settings.SuspendAtEnd;
         BatteryThreshold = settings.BatteryThresholdPercent;
+        StopOnLowBattery = settings.StopOnLowBattery;
         ModernStandbyCompatibility = settings.ModernStandbyCompatibility;
         ActivityLockEnabled = settings.ActivityLockEnabled;
         ActivityResponse = settings.ActivityResponse;
@@ -1089,6 +1094,7 @@ public sealed partial class MainViewModel : ObservableObject
         LockOnLidClose = LockOnLidClose,
         SuspendAtEnd = SuspendAtEnd,
         BatteryThresholdPercent = BatteryThreshold,
+        StopOnLowBattery = StopOnLowBattery,
         ModernStandbyCompatibility = ModernStandbyCompatibility,
         ActivityLockEnabled = ActivityLockEnabled,
         ActivityResponse = ActivityResponse,

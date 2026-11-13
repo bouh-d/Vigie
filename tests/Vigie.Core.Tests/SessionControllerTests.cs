@@ -1,3 +1,4 @@
+using Vigie.Core.Logging;
 using Vigie.Core.Power;
 using Vigie.Core.Session;
 using Vigie.Core.Tests.Fakes;
@@ -199,6 +200,29 @@ public class SessionControllerTests
 
         Assert.Equal(SessionState.Inactive, _controller.State);
         Assert.Contains(_log.Entries, e => e.Message.Contains("19", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void WithoutTheBatteryStopTheSessionRunsUntilWindowsActs()
+    {
+        _power.Seed(_power.ActiveScheme, PowerKnownSettings.Battery, PowerKnownSettings.CriticalBatteryAction, 2, 2);
+        _power.Seed(_power.ActiveScheme, PowerKnownSettings.Battery, PowerKnownSettings.CriticalBatteryLevel, 2, 2);
+        Start(Options() with { StopOnLowBattery = false });
+
+        _power.Status = new PowerStatus(PowerSource.Battery, 3, BatterySaverOn: false);
+        _controller.Beat();
+
+        Assert.True(_controller.IsRunning);
+        Assert.Contains(_log.Entries, e => e.Message == "No battery stop: the session runs until Windows hibernates the PC at 2%.");
+    }
+
+    [Fact]
+    public void WithoutTheBatteryStopAPcThatDoesNothingAtCriticalBatteryIsAWarning()
+    {
+        _power.Seed(_power.ActiveScheme, PowerKnownSettings.Battery, PowerKnownSettings.CriticalBatteryAction, 0, 0);
+        Start(Options() with { StopOnLowBattery = false });
+
+        Assert.Contains(_log.Entries, e => e.Level == LogLevel.Warning && e.Message.Contains("switch off abruptly", StringComparison.Ordinal));
     }
 
     [Fact]

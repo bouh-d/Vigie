@@ -134,6 +134,21 @@ public static class SessionNarration
     public static string BatteryStop(int percent)
         => $"Battery at {percent}%: session stopped, power settings restored.";
 
+    /// <param name="criticalAction">Windows' critical-battery action on battery
+    /// (0 nothing, 1 sleep, 2 hibernate, 3 shut down), or null when unreadable.</param>
+    public static string NoBatteryStop(uint? criticalAction, uint? criticalLevel)
+    {
+        string level = criticalLevel is uint percent ? $" at {percent}%" : string.Empty;
+        return criticalAction switch
+        {
+            0 => "No battery stop: Windows does nothing at critical battery on this PC, so it will switch off abruptly when the battery is empty.",
+            1 => $"No battery stop: the session runs until Windows puts the PC to sleep{level}.",
+            2 => $"No battery stop: the session runs until Windows hibernates the PC{level}.",
+            3 => $"No battery stop: the session runs until Windows shuts the PC down{level}.",
+            _ => "No battery stop: the session runs until Windows acts on a critical battery.",
+        };
+    }
+
     public static string Suspended(bool succeeded)
         => succeeded
             ? "Putting the PC to sleep (end of session, lid closed)."

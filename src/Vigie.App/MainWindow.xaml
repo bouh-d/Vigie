@@ -248,12 +248,15 @@
                       AutomationProperties.AutomationId="LockOnLidClose" />
             <CheckBox Content="{x:Static res:Strings.Opt_SuspendAtEnd}" IsChecked="{Binding SuspendAtEnd}" Margin="0,0,0,6"
                       ToolTip="{x:Static res:Strings.Tip_SuspendAtEnd}" AutomationProperties.AutomationId="SuspendAtEnd" />
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-              <TextBlock Text="{x:Static res:Strings.Opt_BatteryStopPrefix}" VerticalAlignment="Center" />
-              <TextBox Width="40" Text="{Binding BatteryThreshold}" Margin="6,0" VerticalContentAlignment="Center"
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+              <CheckBox Content="{x:Static res:Strings.Opt_BatteryStopPrefix}" IsChecked="{Binding StopOnLowBattery}" VerticalAlignment="Center"
+                        AutomationProperties.AutomationId="StopOnLowBattery" />
+              <TextBox Width="40" Text="{Binding BatteryThreshold}" Margin="6,0" VerticalContentAlignment="Center" IsEnabled="{Binding StopOnLowBattery}"
                        ToolTip="{x:Static res:Strings.Tip_BatteryStop}" AutomationProperties.Name="{x:Static res:Strings.Opt_BatteryStopSuffix}" />
               <TextBlock Text="{x:Static res:Strings.Opt_BatteryStopSuffix}" VerticalAlignment="Center" />
             </StackPanel>
+            <TextBlock Text="{x:Static res:Strings.Opt_NoBatteryStopNote}" Style="{StaticResource Hint}" Margin="20,0,0,6"
+                       Visibility="{Binding StopOnLowBattery, Converter={StaticResource BoolVis}, ConverterParameter=Invert}" />
             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
               <TextBlock Text="{x:Static res:Strings.Duration_CapLabel}" VerticalAlignment="Center" />
               <TextBox Width="34" Text="{Binding TaskCapHours}" Margin="6,0" VerticalContentAlignment="Center"

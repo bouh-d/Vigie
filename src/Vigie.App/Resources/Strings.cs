@@ -75,6 +75,8 @@ public static class Strings
 
     public static string Opt_LidClosedNote => Get("Opt_LidClosedNote");
 
+    public static string Opt_NoBatteryStopNote => Get("Opt_NoBatteryStopNote");
+
     public static string Opt_Advanced => Get("Opt_Advanced");
 
     public static string Opt_ModernStandbyCompat => Get("Opt_ModernStandbyCompat");

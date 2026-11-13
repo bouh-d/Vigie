@@ -13,6 +13,11 @@ public static class PowerKnownSettings
     public static readonly Guid Sleep = new("238c9fa8-0aad-41ed-83f4-97be242c8f20");
     public static readonly Guid StandbyIdle = new("29f6c1db-86da-48c5-9fdb-f2b67b1f44da");
 
+    // Read only: Vigie never changes Windows' critical-battery protection.
+    public static readonly Guid Battery = new("e73a048d-bf27-4f12-9731-8b2076e8891f");
+    public static readonly Guid CriticalBatteryAction = new("637ea02f-bbcb-4015-8e2c-a1c7b9c0b546");
+    public static readonly Guid CriticalBatteryLevel = new("9a66d8d7-4ff7-4ef9-b5a2-5a326ca2a469");
+
     public static readonly Guid LidSwitchStateChange = new("ba3e0f4d-b817-4094-a2d1-d56379e6a0f3");
     public static readonly Guid AcDcPowerSource = new("5d3e9a59-e9d5-4b00-a6bd-ff34ff516548");
     public static readonly Guid BatteryPercentageRemaining = new("a7ad8041-b45a-4cae-87a3-eecbb468a9e1");

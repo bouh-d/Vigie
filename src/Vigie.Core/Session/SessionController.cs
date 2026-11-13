@@ -103,6 +103,11 @@ public sealed class SessionController
             _log.Warning(SessionNarration.RebootPending());
         }
 
+        if (!options.StopOnLowBattery)
+        {
+            LogCriticalBatteryAction();
+        }
+
         DegradedReason degraded = DegradedReason.None;
         bool manageLid = options.WorkWithLidClosed;
         if (manageLid && preconditions.Policies.LidActionEnforced)
@@ -393,8 +398,41 @@ public sealed class SessionController
         return false;
     }
 
+    // Without the battery stop, what ends the session on a draining battery is
+    // Windows' own critical-battery action, which Vigie reads and never changes.
+    private void LogCriticalBatteryAction()
+    {
+        PowerValue? critical = null;
+        PowerValue? level = null;
+        try
+        {
+            Guid scheme = _power.GetActiveSchemeGuid();
+            critical = _power.ReadValue(scheme, PowerKnownSettings.Battery, PowerKnownSettings.CriticalBatteryAction);
+            level = _power.ReadValue(scheme, PowerKnownSettings.Battery, PowerKnownSettings.CriticalBatteryLevel);
+        }
+        catch (PowerApiException)
+        {
+            // Unreadable: the generic line below says what happens instead.
+        }
+
+        string line = SessionNarration.NoBatteryStop(critical?.Dc, level?.Dc);
+        if (critical?.Dc == 0)
+        {
+            _log.Warning(line);
+        }
+        else
+        {
+            _log.Info(line);
+        }
+    }
+
     private bool CheckBatteryThreshold()
     {
+        if (!_options!.StopOnLowBattery)
+        {
+            return false;
+        }
+
         PowerStatus status = _power.GetPowerStatus();
         if (status.OnBattery && status.BatteryPercent is int percent && percent <= _options!.BatteryStopThresholdPercent)
         {
