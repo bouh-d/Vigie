@@ -52,6 +52,12 @@ public sealed partial class MainViewModel : ObservableObject
     private long _lastLocateTick;
     private bool _lidClosed;
 
+    // The home lab's Remote Control server and its restarts.
+    private readonly List<DateTimeOffset> _remoteControlRestarts = [];
+    private ClaudeRun? _remoteControl;
+    private DateTimeOffset? _remoteControlRestartAt;
+    private bool _remoteControlFirstStart;
+
     // The task the user last started, and its resume after the usage limit.
     private ClaudeLaunchRequest? _task;
     private DateTimeOffset? _resumeAt;
@@ -241,6 +247,8 @@ public sealed partial class MainViewModel : ObservableObject
 
     public bool IsUntilTask => SelectedDuration == DurationChoice.UntilTask;
 
+    public bool IsHomeLab => SelectedDuration == DurationChoice.HomeLab;
+
     public string ActivityLockLabel => ActivityResponse == ActivityResponse.Lock ? Strings.Opt_ActivityLock_Lock : Strings.Opt_ActivityLock_Sleep;
 
     public bool IsSleepResponse => ActivityResponse == ActivityResponse.Sleep;
@@ -311,6 +319,10 @@ public sealed partial class MainViewModel : ObservableObject
         _timer.Stop();
         _activityTimer.Stop();
         _services.Session.Stop(reason);
+
+        // The session's Stopped event reaches the dispatcher too late when the
+        // application is closing, so the server is stopped here as well.
+        StopRemoteControl();
         SaveSettings();
         SystemEvents.SessionSwitch -= OnSessionSwitch;
         _shortcut?.Dispose();
@@ -325,6 +337,14 @@ public sealed partial class MainViewModel : ObservableObject
         if (!TryBuildOptions(out SessionOptions options))
         {
             ShowMessage(Strings.Dialog_InvalidOptions, Strings.AppTitle);
+            return;
+        }
+
+        // The home lab runs Remote Control in the Claude Code folder, so it
+        // needs one before anything is changed.
+        if (IsHomeLab && (string.IsNullOrWhiteSpace(ProjectFolder) || !_services.FileSystem.DirectoryExists(ProjectFolder)))
+        {
+            ShowMessage(Strings.Dialog_HomeLabFolder, Strings.AppTitle);
             return;
         }
 
@@ -369,7 +389,7 @@ public sealed partial class MainViewModel : ObservableObject
             _services.ActivityLock.Start(ActivityResponse, ActivityShortcut);
         }
 
-        _sessionTotal = options.EffectiveCeiling;
+        _sessionTotal = options.EffectiveCeiling ?? TimeSpan.Zero;
         _sessionStartTick = _services.Clock.TickCountMilliseconds;
         ShowRebootWarning = preconditions.Policies.RebootPending;
         ShowModernStandbyInfo = _modernStandby && status.OnBattery;
@@ -377,6 +397,88 @@ public sealed partial class MainViewModel : ObservableObject
         ShowSleepBanner = false;
         UpdateDegradedBanner(result.Degraded);
         UpdateSessionDisplay();
+
+        if (options.DurationKind == SessionDurationKind.UntilStopped)
+        {
+            _remoteControlRestarts.Clear();
+            StartRemoteControl(firstStart: true);
+        }
+    }
+
+    private void StartRemoteControl(bool firstStart)
+    {
+        _remoteControlRestartAt = null;
+        if (!RemoteControl.Allows(SelectedPermission.Mode))
+        {
+            _services.Log.Warning(ClaudeNarration.RemoteControlNotStarted("the bypass permissions mode is never used without someone to confirm it."));
+            return;
+        }
+
+        if (LocateClaude() is not { } installation)
+        {
+            _services.Log.Warning(ClaudeNarration.RemoteControlNotStarted("Claude Code was not found."));
+            return;
+        }
+
+        try
+        {
+            ClaudeRun server = ClaudeRun.Start(
+                _services.Processes,
+                _services.FileSystem,
+                _services.Clock,
+                RemoteControl.Build(installation, ProjectFolder, SelectedPermission.Mode),
+                ClaudeLaunchMode.Interactive,
+                runDirectory: null);
+            _remoteControl?.Dispose();
+            _remoteControl = server;
+            _remoteControlFirstStart = firstStart;
+            _vigieProcessIds.Add(server.ProcessId);
+            server.Exited += (_, _) => _dispatcher.BeginInvoke(() => OnRemoteControlExited(server));
+            _services.Log.Info(ClaudeNarration.RemoteControlStarted(server.ProcessId, ProjectFolder));
+            RefreshProcesses();
+        }
+        catch (Exception exception) when (exception is Win32Exception or InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            _services.Log.Warning(ClaudeNarration.RemoteControlNotStarted(exception.Message));
+        }
+    }
+
+    private void OnRemoteControlExited(ClaudeRun server)
+    {
+        if (!ReferenceEquals(server, _remoteControl) || !_services.Session.IsRunning)
+        {
+            return;
+        }
+
+        ClaudeRunSnapshot snapshot = server.Snapshot();
+        if (snapshot.InterruptRequested)
+        {
+            return;
+        }
+
+        DateTimeOffset now = _services.Clock.Now;
+        _remoteControlRestarts.RemoveAll(at => now - at >= TimeSpan.FromHours(1));
+        RemoteControlDecision decision = RemoteControl.OnExit(snapshot.StartedAt, snapshot.ExitedAt ?? now, _remoteControlFirstStart, _remoteControlRestarts.Count);
+        if (decision.RestartAt is DateTimeOffset at)
+        {
+            _remoteControlRestartAt = at;
+            _services.Log.Warning(ClaudeNarration.RemoteControlRestarting(at, now));
+        }
+        else
+        {
+            _services.Log.Warning(ClaudeNarration.RemoteControlFailedAtStart());
+            NotificationRequested?.Invoke(this, ClaudeNarration.RemoteControlFailedAtStart());
+        }
+    }
+
+    private void StopRemoteControl()
+    {
+        _remoteControlRestartAt = null;
+        if (_remoteControl is { HasExited: false } server)
+        {
+            server.Kill();
+            _services.Log.Info(ClaudeNarration.RemoteControlStopped());
+        }
     }
 
     [RelayCommand]
@@ -513,6 +615,12 @@ public sealed partial class MainViewModel : ObservableObject
             ResumeTask();
         }
 
+        if (_remoteControlRestartAt is DateTimeOffset restartAt && _services.Clock.Now >= restartAt && _services.Session.IsRunning)
+        {
+            _remoteControlRestarts.Add(_services.Clock.Now);
+            StartRemoteControl(firstStart: false);
+        }
+
         if (_services.Session.IsRunning)
         {
             if (_tick % BeatInterval == 0)
@@ -603,7 +711,8 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
-        DateTimeOffset? sessionEnd = _services.Session.IsRunning ? _services.Session.EndTime : null;
+        // A home lab session has no end time: the wait fits whatever its length.
+        DateTimeOffset? sessionEnd = _services.Session.IsRunning ? _services.Session.EndTime ?? DateTimeOffset.MaxValue : null;
         ResumePlan plan = UsageLimitResume.Plan(snapshot, _task.ExtraArguments, _resumeCount, now, sessionEnd);
         if (plan.ResumeAt is DateTimeOffset resumeAt)
         {
@@ -685,7 +794,12 @@ public sealed partial class MainViewModel : ObservableObject
 
         options = new SessionOptions
         {
-            DurationKind = untilTask ? SessionDurationKind.UntilTask : SessionDurationKind.Fixed,
+            DurationKind = SelectedDuration switch
+            {
+                DurationChoice.HomeLab => SessionDurationKind.UntilStopped,
+                DurationChoice.UntilTask => SessionDurationKind.UntilTask,
+                _ => SessionDurationKind.Fixed,
+            },
             FixedDuration = DurationFromChoice(),
             TaskModeCap = TimeSpan.FromHours(TaskCapHours),
             KeepDisplayOn = KeepDisplayOn,
@@ -860,6 +974,13 @@ public sealed partial class MainViewModel : ObservableObject
     {
         if (_services.Session.RemainingTime is not TimeSpan remaining || _services.Session.EndTime is not DateTimeOffset end)
         {
+            // The home lab has no end time.
+            if (_services.Session.IsRunning)
+            {
+                SessionStateText = _services.Session.Degraded != DegradedReason.None ? Strings.State_Degraded : Strings.State_HomeLab;
+                Progress = 0;
+            }
+
             return;
         }
 
@@ -885,6 +1006,7 @@ public sealed partial class MainViewModel : ObservableObject
     private void OnSessionStopped(StopResult result)
     {
         CancelResume(ResumeCancellation.SessionEnded);
+        StopRemoteControl();
         _services.ActivityLock.Stop();
         _shortcut?.Unregister();
         ShowBatteryWarning = false;
@@ -1004,9 +1126,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void UpdateTrayTooltip()
     {
-        TrayTooltip = IsSessionRunning && _services.Session.RemainingTime is TimeSpan remaining
-            ? Strings.Format(Strings.Tray_Tip_Active, FormatShort(remaining))
-            : Strings.Tray_Tip_Inactive;
+        TrayTooltip = !IsSessionRunning ? Strings.Tray_Tip_Inactive
+            : _services.Session.RemainingTime is TimeSpan remaining ? Strings.Format(Strings.Tray_Tip_Active, FormatShort(remaining))
+            : Strings.Tray_Tip_HomeLab;
     }
 
     private void OnActivityShortcut()
@@ -1069,7 +1191,9 @@ public sealed partial class MainViewModel : ObservableObject
             CustomMinutes = settings.DurationMinutes;
         }
 
-        SelectedDuration = settings.UntilTask ? DurationChoice.UntilTask : fixedChoice;
+        SelectedDuration = settings.HomeLab ? DurationChoice.HomeLab
+            : settings.UntilTask ? DurationChoice.UntilTask
+            : fixedChoice;
         TaskCapHours = settings.TaskCapHours;
         WorkWithLidClosed = settings.WorkWithLidClosed;
         KeepDisplayOn = settings.KeepDisplayOn;
@@ -1086,8 +1210,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     private UserSettings CurrentSettings() => new()
     {
-        DurationMinutes = SelectedDuration is DurationChoice.Custom or DurationChoice.UntilTask ? CustomMinutes : (int)DurationFromChoice().TotalMinutes,
+        DurationMinutes = SelectedDuration is DurationChoice.Custom or DurationChoice.UntilTask or DurationChoice.HomeLab ? CustomMinutes : (int)DurationFromChoice().TotalMinutes,
         UntilTask = SelectedDuration == DurationChoice.UntilTask,
+        HomeLab = SelectedDuration == DurationChoice.HomeLab,
         TaskCapHours = TaskCapHours,
         WorkWithLidClosed = WorkWithLidClosed,
         KeepDisplayOn = KeepDisplayOn,
@@ -1158,6 +1283,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(IsCustomDuration));
         OnPropertyChanged(nameof(IsUntilTask));
+        OnPropertyChanged(nameof(IsHomeLab));
     }
 
     partial void OnActivityResponseChanged(ActivityResponse value)

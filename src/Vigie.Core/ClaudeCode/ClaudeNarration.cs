@@ -78,6 +78,19 @@ public static class ClaudeNarration
         _ => $"Not resumed: the extra argument {plan.Argument} already picks a session.",
     };
 
+    public static string RemoteControlStarted(int processId, string folder)
+        => $"Remote Control started (PID {processId}) in {folder}: sessions on claude.ai or the Claude app can work on this PC.";
+
+    public static string RemoteControlFailedAtStart()
+        => "Remote Control stopped right after starting: check that Claude Code is signed in and trusts the folder (run \"claude\" there once), then start the home lab again.";
+
+    public static string RemoteControlRestarting(DateTimeOffset at, DateTimeOffset now)
+        => $"Remote Control stopped; Vigie starts it again at {ClockTime(at, now)}.";
+
+    public static string RemoteControlNotStarted(string cause) => $"Remote Control could not be started: {cause}";
+
+    public static string RemoteControlStopped() => "Remote Control stopped with the home lab.";
+
     public static string Resuming(string sessionId) => $"Usage limit reset: resuming Claude Code session {sessionId}.";
 
     public static string ResumeCancelled(ResumeCancellation reason) => reason switch

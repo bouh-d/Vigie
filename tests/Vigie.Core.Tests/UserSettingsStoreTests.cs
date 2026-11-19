@@ -27,6 +27,7 @@ public class UserSettingsStoreTests
             ActivityShortcut = new Shortcut(ShortcutModifiers.Control | ShortcutModifiers.Shift, VkF9),
             ResumeAfterUsageLimit = true,
             StopOnLowBattery = false,
+            HomeLab = true,
         };
 
         store.Save(settings);

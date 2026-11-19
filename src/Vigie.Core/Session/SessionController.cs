@@ -170,7 +170,7 @@ public sealed class SessionController
             _log.Warning(SessionNarration.Degraded(degraded));
         }
 
-        _deadline = Deadline.Starting(_clock, options.EffectiveCeiling);
+        _deadline = options.EffectiveCeiling is TimeSpan ceiling ? Deadline.Starting(_clock, ceiling) : null;
         _lastDriftCheckTick = _clock.TickCountMilliseconds;
         _trackedExitTick = null;
         _sleepDetector.Reset();
@@ -196,7 +196,7 @@ public sealed class SessionController
             SleepDetected?.Invoke(this, period);
         }
 
-        if (_deadline!.HasElapsed(_clock))
+        if (_deadline is not null && _deadline.HasElapsed(_clock))
         {
             Stop(_options!.DurationKind == SessionDurationKind.UntilTask ? StopReason.TaskModeCap : StopReason.TimerElapsed);
             return;

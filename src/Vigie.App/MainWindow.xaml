@@ -89,6 +89,8 @@
           <ComboBox Width="280" HorizontalAlignment="Left" Margin="72,-2,0,10" ItemsSource="{Binding TaskTargets}" SelectedItem="{Binding SelectedTaskTarget}"
                     Visibility="{Binding IsUntilTask, Converter={StaticResource BoolVis}}"
                     AutomationProperties.Name="{x:Static res:Strings.Claude_TrackTarget}" />
+          <TextBlock Text="{x:Static res:Strings.HomeLab_Note}" Style="{StaticResource Hint}" Margin="72,-4,0,10"
+                     Visibility="{Binding IsHomeLab, Converter={StaticResource BoolVis}}" AutomationProperties.AutomationId="HomeLabNote" />
 
           <CheckBox Content="{x:Static res:Strings.Opt_LidClosed}" IsChecked="{Binding WorkWithLidClosed}"
                     ToolTip="{x:Static res:Strings.Tip_LidClosed}" AutomationProperties.AutomationId="WorkWithLidClosed" />

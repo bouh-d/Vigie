@@ -4,6 +4,9 @@ public enum SessionDurationKind
 {
     Fixed,
     UntilTask,
+
+    /// <summary>No end time: the home lab mode, which runs until it is stopped.</summary>
+    UntilStopped,
 }
 
 /// <summary>
@@ -50,8 +53,14 @@ public sealed record SessionOptions
 
     public bool LocksOnLidClose => LockOnLidClose || ModernStandbyCompatibility;
 
-    /// <summary>The ceiling a fixed session, or the cap of a task session, runs for.</summary>
-    public TimeSpan EffectiveCeiling => DurationKind == SessionDurationKind.UntilTask ? TaskModeCap : FixedDuration;
+    /// <summary>The ceiling a fixed session, or the cap of a task session, runs
+    /// for; null for a session that runs until it is stopped.</summary>
+    public TimeSpan? EffectiveCeiling => DurationKind switch
+    {
+        SessionDurationKind.UntilTask => TaskModeCap,
+        SessionDurationKind.UntilStopped => null,
+        _ => FixedDuration,
+    };
 
     public bool IsValid(out string? error)
     {

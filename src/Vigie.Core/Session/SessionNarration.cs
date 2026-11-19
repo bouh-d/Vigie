@@ -14,9 +14,12 @@ public static class SessionNarration
     public static string Started(SessionOptions options)
     {
         string scope = options.WorkWithLidClosed ? ", running with the lid closed" : string.Empty;
-        return options.DurationKind == SessionDurationKind.UntilTask
-            ? $"Session started until the Claude Code task ends ({Duration(options.TaskModeCap)} at most){scope}."
-            : $"Session started for {Duration(options.FixedDuration)}{scope}.";
+        return options.DurationKind switch
+        {
+            SessionDurationKind.UntilTask => $"Session started until the Claude Code task ends ({Duration(options.TaskModeCap)} at most){scope}.",
+            SessionDurationKind.UntilStopped => $"Home lab started: the PC stays awake until you stop it{scope}.",
+            _ => $"Session started for {Duration(options.FixedDuration)}{scope}.",
+        };
     }
 
     public static string KeepAwakeActive(bool usesFallback, bool displayKept)

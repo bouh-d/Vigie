@@ -11,6 +11,7 @@ public enum DurationChoice
     FourHours,
     Custom,
     UntilTask,
+    HomeLab,
 }
 
 public sealed record DurationItem(DurationChoice Choice, string Display)
@@ -23,6 +24,7 @@ public sealed record DurationItem(DurationChoice Choice, string Display)
         new(DurationChoice.FourHours, Strings.Duration_4h),
         new(DurationChoice.Custom, Strings.Duration_Custom),
         new(DurationChoice.UntilTask, Strings.Duration_UntilTask),
+        new(DurationChoice.HomeLab, Strings.Duration_HomeLab),
     ];
 
     public override string ToString() => Display;

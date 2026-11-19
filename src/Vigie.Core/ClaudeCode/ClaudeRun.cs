@@ -170,6 +170,20 @@ public sealed class ClaudeRun : IProcessOutputSink, IDisposable
         return InterruptOutcome.Killed;
     }
 
+    /// <summary>Ends the process and everything it started, at once.</summary>
+    public void Kill()
+    {
+        lock (_gate)
+        {
+            _interruptRequested = true;
+        }
+
+        if (_process is { HasExited: false } process)
+        {
+            process.KillTree();
+        }
+    }
+
     public void OnOutputLine(string line)
     {
         ClaudeStreamEvent? streamEvent = StreamJsonParser.Parse(line);

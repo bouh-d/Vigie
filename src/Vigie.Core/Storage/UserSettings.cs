@@ -13,6 +13,9 @@ public sealed record UserSettings
 
     public bool UntilTask { get; init; }
 
+    /// <summary>The home lab mode: no end time, Remote Control on.</summary>
+    public bool HomeLab { get; init; }
+
     public int TaskCapHours { get; init; } = 8;
 
     public bool WorkWithLidClosed { get; init; } = true;
