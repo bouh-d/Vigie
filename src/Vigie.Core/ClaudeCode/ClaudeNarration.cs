@@ -82,7 +82,7 @@ public static class ClaudeNarration
         => $"Remote Control started (PID {processId}) in {folder}: sessions on claude.ai or the Claude app can work on this PC.";
 
     public static string RemoteControlFailedAtStart()
-        => "Remote Control stopped right after starting: check that Claude Code is signed in and trusts the folder (run \"claude\" there once), then start the home lab again.";
+        => "Remote Control stopped right after starting: check that Claude Code is signed in and trusts the folder (run \"claude\" there once). Vigie keeps trying.";
 
     public static string RemoteControlRestarting(DateTimeOffset at, DateTimeOffset now)
         => $"Remote Control stopped; Vigie starts it again at {ClockTime(at, now)}.";

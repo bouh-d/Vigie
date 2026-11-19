@@ -206,19 +206,18 @@ The home lab is a session with no end time (`SessionDurationKind.UntilStopped`)
 that also keeps Claude Code's Remote Control server running, so a session on
 claude.ai or in the Claude app can work on the PC at any time.
 
-- The server is `claude remote-control`, started in the Claude Code folder in
-  its own console, like an interactive session, with the chosen permission
-  mode. The mode that turns permission checks off is refused: it has to be
-  confirmed at every launch, and a restart has no one to confirm it.
+- The server is `claude remote-control`, started in its own console, like an
+  interactive session, with the chosen permission mode, whichever it is. The
+  home lab sets no condition: it runs in the Claude Code folder, or the user
+  folder when none is set or it is gone.
 - A first start that ends within 20 seconds is a start failure (a folder Claude
-  Code does not trust yet, or no signed-in account): it is reported, not
-  retried. A later exit is retried after 30 seconds, doubling with each restart
-  in the same hour, up to 10 minutes, so an internet outage costs a few
-  attempts, not a loop.
+  Code does not trust yet, or no signed-in account): it is reported, and
+  retried like any exit. An exit is retried after 30 seconds, doubling with
+  each restart in the same hour, up to 10 minutes, so an internet outage costs
+  a few attempts, not a loop.
 - A launch that cannot be made (Claude Code missing, a start error) is retried
-  on the same waits; the home lab refuses to start at all when Claude Code is
-  not found. The window shows whether the server is running or when it starts
-  again.
+  on the same waits. The window shows whether the server is running or when it
+  starts again.
 - Ending the session stops the server like an interrupted task: Ctrl+C, then
   its process tree after 10 seconds. Closing Vigie ends the tree at once.
 - With no end time there is no countdown or progress bar, and the resume after

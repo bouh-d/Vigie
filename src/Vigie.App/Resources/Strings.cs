@@ -65,8 +65,6 @@ public static class Strings
 
     public static string HomeLab_Note => Get("HomeLab_Note");
 
-    public static string Dialog_HomeLabFolder => Get("Dialog_HomeLabFolder");
-
     public static string State_HomeLab => Get("State_HomeLab");
 
     public static string Tray_Tip_HomeLab => Get("Tray_Tip_HomeLab");

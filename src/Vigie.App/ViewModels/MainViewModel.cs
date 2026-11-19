@@ -346,20 +346,6 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
-        // The home lab runs Remote Control in the Claude Code folder, so it
-        // needs one before anything is changed.
-        if (IsHomeLab && (string.IsNullOrWhiteSpace(ProjectFolder) || !_services.FileSystem.DirectoryExists(ProjectFolder)))
-        {
-            ShowMessage(Strings.Dialog_HomeLabFolder, Strings.AppTitle);
-            return;
-        }
-
-        if (IsHomeLab && LocateClaude() is null)
-        {
-            ShowMessage(Strings.Format(Strings.Claude_NotFound, Strings.Claude_InstallUrl), Strings.AppTitle);
-            return;
-        }
-
         SaveSettings();
 
         // Registered before anything else, so a combination another
@@ -420,13 +406,6 @@ public sealed partial class MainViewModel : ObservableObject
     private void StartRemoteControl(bool firstStart)
     {
         _remoteControlRestartAt = null;
-        if (!RemoteControl.Allows(SelectedPermission.Mode))
-        {
-            _services.Log.Warning(ClaudeNarration.RemoteControlNotStarted("the bypass permissions mode is never used without someone to confirm it."));
-            UpdateRemoteControlStatus();
-            return;
-        }
-
         if (LocateClaude() is not { } installation)
         {
             _services.Log.Warning(ClaudeNarration.RemoteControlNotStarted("Claude Code was not found."));
@@ -434,13 +413,17 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
+        string folder = RemoteControl.FolderOrDefault(
+            ProjectFolder,
+            _services.FileSystem.DirectoryExists,
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
         try
         {
             ClaudeRun server = ClaudeRun.Start(
                 _services.Processes,
                 _services.FileSystem,
                 _services.Clock,
-                RemoteControl.Build(installation, ProjectFolder, SelectedPermission.Mode),
+                RemoteControl.Build(installation, folder, SelectedPermission.Mode),
                 ClaudeLaunchMode.Interactive,
                 runDirectory: null);
             _remoteControl?.Dispose();
@@ -448,7 +431,7 @@ public sealed partial class MainViewModel : ObservableObject
             _remoteControlFirstStart = firstStart;
             _vigieProcessIds.Add(server.ProcessId);
             server.Exited += (_, _) => _dispatcher.BeginInvoke(() => OnRemoteControlExited(server));
-            _services.Log.Info(ClaudeNarration.RemoteControlStarted(server.ProcessId, ProjectFolder));
+            _services.Log.Info(ClaudeNarration.RemoteControlStarted(server.ProcessId, folder));
             RefreshProcesses();
         }
         catch (Exception exception) when (exception is Win32Exception or InvalidOperationException or IOException or UnauthorizedAccessException)
@@ -503,15 +486,16 @@ public sealed partial class MainViewModel : ObservableObject
         DateTimeOffset now = _services.Clock.Now;
         _remoteControlRestarts.RemoveAll(at => now - at >= TimeSpan.FromHours(1));
         RemoteControlDecision decision = RemoteControl.OnExit(snapshot.StartedAt, snapshot.ExitedAt ?? now, _remoteControlFirstStart, _remoteControlRestarts.Count);
+        if (decision.Action == RemoteControlExitAction.FailedAtStart)
+        {
+            _services.Log.Warning(ClaudeNarration.RemoteControlFailedAtStart());
+            NotificationRequested?.Invoke(this, ClaudeNarration.RemoteControlFailedAtStart());
+        }
+
         if (decision.RestartAt is DateTimeOffset at)
         {
             _remoteControlRestartAt = at;
             _services.Log.Warning(ClaudeNarration.RemoteControlRestarting(at, now));
-        }
-        else
-        {
-            _services.Log.Warning(ClaudeNarration.RemoteControlFailedAtStart());
-            NotificationRequested?.Invoke(this, ClaudeNarration.RemoteControlFailedAtStart());
         }
 
         UpdateRemoteControlStatus();

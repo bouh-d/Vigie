@@ -31,20 +31,30 @@ public class HomeLabTests
     }
 
     [Fact]
-    public void TheHomeLabNeverTurnsPermissionChecksOff()
+    public void EveryPermissionModeIsPassedOn()
     {
-        Assert.False(RemoteControl.Allows("bypassPermissions"));
-        Assert.True(RemoteControl.Allows(null));
-        Assert.True(RemoteControl.Allows("acceptEdits"));
+        var installation = new ClaudeInstallation(ClaudeInstallationSource.NativeInstaller, @"C:\claude.exe");
+
+        Assert.Equal(["remote-control", "--permission-mode", "bypassPermissions"], RemoteControl.Build(installation, @"C:\work\lab", "bypassPermissions").Arguments);
     }
 
     [Fact]
-    public void AFirstStartThatEndsWithinSecondsIsReportedNotRestarted()
+    public void WithoutAUsableFolderTheServerRunsInTheUserFolder()
+    {
+        const string UserFolder = @"C:\Users\dev";
+
+        Assert.Equal(UserFolder, RemoteControl.FolderOrDefault(null, _ => true, UserFolder));
+        Assert.Equal(UserFolder, RemoteControl.FolderOrDefault(@"C:\gone", _ => false, UserFolder));
+        Assert.Equal(@"C:\work\lab", RemoteControl.FolderOrDefault(@"C:\work\lab", _ => true, UserFolder));
+    }
+
+    [Fact]
+    public void AFirstStartThatEndsWithinSecondsIsReportedAndStillRestarted()
     {
         RemoteControlDecision decision = RemoteControl.OnExit(Start, Start.AddSeconds(5), firstStart: true, restartsThisHour: 0);
 
         Assert.Equal(RemoteControlExitAction.FailedAtStart, decision.Action);
-        Assert.Null(decision.RestartAt);
+        Assert.Equal(Start.AddSeconds(35), decision.RestartAt);
     }
 
     [Fact]

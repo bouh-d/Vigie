@@ -8,7 +8,8 @@ public enum RemoteControlExitAction
     Restart,
 
     /// <summary>The first start ended within seconds: a folder Claude Code does
-    /// not trust yet, or no signed-in account. Restarting would only loop.</summary>
+    /// not trust yet, or no signed-in account. The user is told, and the server
+    /// is still started again at the given time.</summary>
     FailedAtStart,
 }
 
@@ -47,23 +48,20 @@ public static class RemoteControl
         return new ProcessLaunch(installation.ExecutablePath, arguments, folder);
     }
 
-    /// <summary>Turning permission checks off has to be confirmed at every
-    /// launch, which an unattended restart cannot do, so the home lab never
-    /// uses that mode.</summary>
-    public static bool Allows(string? permissionMode)
-        => !string.Equals(permissionMode, ClaudeCommand.BypassPermissionsMode, StringComparison.OrdinalIgnoreCase);
+    /// <summary>The folder Remote Control works in: the one chosen under Claude
+    /// Code, or the user's own folder when none is chosen or it is gone.</summary>
+    public static string FolderOrDefault(string? chosen, Func<string, bool> directoryExists, string userFolder)
+        => !string.IsNullOrWhiteSpace(chosen) && directoryExists(chosen) ? chosen : userFolder;
 
     /// <param name="restartsThisHour">How many times the server was restarted
     /// in the hour before <paramref name="exitedAt"/>.</param>
     public static RemoteControlDecision OnExit(DateTimeOffset startedAt, DateTimeOffset exitedAt, bool firstStart, int restartsThisHour)
     {
-        if (firstStart && exitedAt - startedAt < StartupWindow)
-        {
-            return new RemoteControlDecision(RemoteControlExitAction.FailedAtStart, null);
-        }
-
         double seconds = FirstRestartDelay.TotalSeconds * Math.Pow(2, Math.Min(restartsThisHour, 10));
         TimeSpan delay = TimeSpan.FromSeconds(Math.Min(seconds, LongestRestartDelay.TotalSeconds));
-        return new RemoteControlDecision(RemoteControlExitAction.Restart, exitedAt + delay);
+        RemoteControlExitAction action = firstStart && exitedAt - startedAt < StartupWindow
+            ? RemoteControlExitAction.FailedAtStart
+            : RemoteControlExitAction.Restart;
+        return new RemoteControlDecision(action, exitedAt + delay);
     }
 }
