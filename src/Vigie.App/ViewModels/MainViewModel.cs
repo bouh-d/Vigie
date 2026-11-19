@@ -1259,7 +1259,7 @@ public sealed partial class MainViewModel : ObservableObject
         LockOnLidClose = settings.LockOnLidClose;
         SuspendAtEnd = settings.SuspendAtEnd;
         BatteryThreshold = settings.BatteryThresholdPercent;
-        StopOnLowBattery = settings.StopOnLowBattery;
+        StopOnLowBattery = !settings.UseBatteryToTheEnd;
         ModernStandbyCompatibility = settings.ModernStandbyCompatibility;
         ActivityLockEnabled = settings.ActivityLockEnabled;
         ActivityResponse = settings.ActivityResponse;
@@ -1279,7 +1279,7 @@ public sealed partial class MainViewModel : ObservableObject
         LockOnLidClose = LockOnLidClose,
         SuspendAtEnd = SuspendAtEnd,
         BatteryThresholdPercent = BatteryThreshold,
-        StopOnLowBattery = StopOnLowBattery,
+        UseBatteryToTheEnd = !StopOnLowBattery,
         ModernStandbyCompatibility = ModernStandbyCompatibility,
         ActivityLockEnabled = ActivityLockEnabled,
         ActivityResponse = ActivityResponse,

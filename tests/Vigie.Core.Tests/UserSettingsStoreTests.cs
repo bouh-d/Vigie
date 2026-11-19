@@ -26,7 +26,7 @@ public class UserSettingsStoreTests
             ActivityResponse = ActivityResponse.Sleep,
             ActivityShortcut = new Shortcut(ShortcutModifiers.Control | ShortcutModifiers.Shift, VkF9),
             ResumeAfterUsageLimit = true,
-            StopOnLowBattery = false,
+            UseBatteryToTheEnd = true,
             HomeLab = true,
         };
 
@@ -41,11 +41,42 @@ public class UserSettingsStoreTests
         var store = new UserSettingsStore(_fileSystem, SettingsPath);
         Assert.Equal(new UserSettings(), store.Load());
         Assert.False(store.Load().ResumeAfterUsageLimit);
-        Assert.True(store.Load().StopOnLowBattery);
+        Assert.False(store.Load().UseBatteryToTheEnd);
 
         _fileSystem.Write(SettingsPath, "{ \"durationMinutes\": ");
 
         Assert.Equal(new UserSettings(), store.Load());
+    }
+
+    [Fact]
+    public void AFileFromVersion011KeepsTheBatteryStopAndTheUsualDuration()
+    {
+        // Written by Vigie 0.1.1, before the battery and home lab options.
+        _fileSystem.Write(SettingsPath, """
+            {
+              "durationMinutes": 1440,
+              "untilTask": false,
+              "taskCapHours": 8,
+              "workWithLidClosed": true,
+              "keepDisplayOn": true,
+              "lockOnLidClose": true,
+              "suspendAtEnd": true,
+              "batteryThresholdPercent": 20,
+              "modernStandbyCompatibility": false,
+              "activityLockEnabled": false,
+              "activityResponse": "Lock",
+              "activityShortcut": { "modifiers": "Alt, Control", "virtualKey": 86 },
+              "resumeAfterUsageLimit": false
+            }
+            """);
+
+        UserSettings settings = new UserSettingsStore(_fileSystem, SettingsPath).Load();
+
+        Assert.False(settings.UseBatteryToTheEnd);
+        Assert.False(settings.HomeLab);
+        Assert.Null(settings.ClaudeFolder);
+        Assert.Equal(1440, settings.DurationMinutes);
+        Assert.True(settings.KeepDisplayOn);
     }
 
     [Fact]
