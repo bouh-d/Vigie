@@ -215,7 +215,12 @@ claude.ai or in the Claude app can work on the PC at any time.
   retried. A later exit is retried after 30 seconds, doubling with each restart
   in the same hour, up to 10 minutes, so an internet outage costs a few
   attempts, not a loop.
-- Ending the session, or closing Vigie, ends the server's process tree.
+- A launch that cannot be made (Claude Code missing, a start error) is retried
+  on the same waits; the home lab refuses to start at all when Claude Code is
+  not found. The window shows whether the server is running or when it starts
+  again.
+- Ending the session stops the server like an interrupted task: Ctrl+C, then
+  its process tree after 10 seconds. Closing Vigie ends the tree at once.
 - With no end time there is no countdown or progress bar, and the resume after
   the usage limit treats the session as long enough for any wait.
 - Vigie has no autostart, so a restart of Windows ends the home lab, as it ends
