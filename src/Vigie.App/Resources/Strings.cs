@@ -57,6 +57,12 @@ public static class Strings
 
     public static string Duration_HomeLab => Get("Duration_HomeLab");
 
+    public static string RemoteControl_Running => Get("RemoteControl_Running");
+
+    public static string RemoteControl_Restarting => Get("RemoteControl_Restarting");
+
+    public static string RemoteControl_Off => Get("RemoteControl_Off");
+
     public static string HomeLab_Note => Get("HomeLab_Note");
 
     public static string Dialog_HomeLabFolder => Get("Dialog_HomeLabFolder");

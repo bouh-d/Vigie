@@ -24,7 +24,10 @@
   <data name="Duration_CustomUnit" xml:space="preserve"><value>min</value></data>
   <data name="Duration_CustomName" xml:space="preserve"><value>Custom duration in minutes</value></data>
   <data name="Duration_UntilTask" xml:space="preserve"><value>Until the Claude Code task ends</value></data>
-  <data name="Duration_HomeLab" xml:space="preserve"><value>Home lab: until I stop it, with Remote Control</value></data>
+  <data name="Duration_HomeLab" xml:space="preserve"><value>Home lab (Remote Control)</value></data>
+  <data name="RemoteControl_Running" xml:space="preserve"><value>Remote Control on (PID {0})</value></data>
+  <data name="RemoteControl_Restarting" xml:space="preserve"><value>Remote Control stopped, starts again at {0}</value></data>
+  <data name="RemoteControl_Off" xml:space="preserve"><value>Remote Control not running: see the log</value></data>
   <data name="HomeLab_Note" xml:space="preserve"><value>The PC stays awake until you press Stop, and Claude Code's Remote Control runs in the folder set under Claude Code. Anyone signed in to your Claude account can then work on this PC from claude.ai or the Claude app. Leave the PC plugged in.</value></data>
   <data name="Dialog_HomeLabFolder" xml:space="preserve"><value>Choose the folder Remote Control works in, under Claude Code, before starting the home lab. Run "claude" there once first, so Claude Code trusts it.</value></data>
   <data name="State_HomeLab" xml:space="preserve"><value>Home lab: awake until you stop it</value></data>

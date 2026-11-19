@@ -16,6 +16,9 @@ public sealed record UserSettings
     /// <summary>The home lab mode: no end time, Remote Control on.</summary>
     public bool HomeLab { get; init; }
 
+    /// <summary>The Claude Code folder, where tasks and Remote Control run.</summary>
+    public string? ClaudeFolder { get; init; }
+
     public int TaskCapHours { get; init; } = 8;
 
     public bool WorkWithLidClosed { get; init; } = true;

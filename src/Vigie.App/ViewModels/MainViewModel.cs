@@ -200,6 +200,12 @@ public sealed partial class MainViewModel : ObservableObject
     public partial bool ResumeAfterUsageLimit { get; set; }
 
     [ObservableProperty]
+    public partial bool ShowRemoteControlStatus { get; set; }
+
+    [ObservableProperty]
+    public partial string RemoteControlStatusText { get; set; } = string.Empty;
+
+    [ObservableProperty]
     public partial string ClaudeStateText { get; set; } = string.Empty;
 
     [ObservableProperty]
@@ -322,7 +328,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         // The session's Stopped event reaches the dispatcher too late when the
         // application is closing, so the server is stopped here as well.
-        StopRemoteControl();
+        StopRemoteControl(graceful: false);
         SaveSettings();
         SystemEvents.SessionSwitch -= OnSessionSwitch;
         _shortcut?.Dispose();
@@ -345,6 +351,12 @@ public sealed partial class MainViewModel : ObservableObject
         if (IsHomeLab && (string.IsNullOrWhiteSpace(ProjectFolder) || !_services.FileSystem.DirectoryExists(ProjectFolder)))
         {
             ShowMessage(Strings.Dialog_HomeLabFolder, Strings.AppTitle);
+            return;
+        }
+
+        if (IsHomeLab && LocateClaude() is null)
+        {
+            ShowMessage(Strings.Format(Strings.Claude_NotFound, Strings.Claude_InstallUrl), Strings.AppTitle);
             return;
         }
 
@@ -411,12 +423,14 @@ public sealed partial class MainViewModel : ObservableObject
         if (!RemoteControl.Allows(SelectedPermission.Mode))
         {
             _services.Log.Warning(ClaudeNarration.RemoteControlNotStarted("the bypass permissions mode is never used without someone to confirm it."));
+            UpdateRemoteControlStatus();
             return;
         }
 
         if (LocateClaude() is not { } installation)
         {
             _services.Log.Warning(ClaudeNarration.RemoteControlNotStarted("Claude Code was not found."));
+            ScheduleRemoteControlRestart();
             return;
         }
 
@@ -440,7 +454,37 @@ public sealed partial class MainViewModel : ObservableObject
         catch (Exception exception) when (exception is Win32Exception or InvalidOperationException or IOException or UnauthorizedAccessException)
         {
             _services.Log.Warning(ClaudeNarration.RemoteControlNotStarted(exception.Message));
+            ScheduleRemoteControlRestart();
+            return;
         }
+
+        UpdateRemoteControlStatus();
+    }
+
+    // A launch that could not be made is tried again on the same growing
+    // waits as a server that stopped.
+    private void ScheduleRemoteControlRestart()
+    {
+        DateTimeOffset now = _services.Clock.Now;
+        _remoteControlRestarts.RemoveAll(at => now - at >= TimeSpan.FromHours(1));
+        RemoteControlDecision decision = RemoteControl.OnExit(now, now, firstStart: false, _remoteControlRestarts.Count);
+        _remoteControlRestartAt = decision.RestartAt;
+        if (decision.RestartAt is DateTimeOffset at)
+        {
+            _services.Log.Warning(ClaudeNarration.RemoteControlRestarting(at, now));
+        }
+
+        UpdateRemoteControlStatus();
+    }
+
+    private void UpdateRemoteControlStatus()
+    {
+        ShowRemoteControlStatus = _services.Session.IsRunning && IsHomeLab;
+        RemoteControlStatusText = _remoteControl is { HasExited: false } server
+            ? Strings.Format(Strings.RemoteControl_Running, server.ProcessId)
+            : _remoteControlRestartAt is DateTimeOffset at
+                ? Strings.Format(Strings.RemoteControl_Restarting, ClaudeNarration.ClockTime(at, _services.Clock.Now))
+                : Strings.RemoteControl_Off;
     }
 
     private void OnRemoteControlExited(ClaudeRun server)
@@ -469,16 +513,31 @@ public sealed partial class MainViewModel : ObservableObject
             _services.Log.Warning(ClaudeNarration.RemoteControlFailedAtStart());
             NotificationRequested?.Invoke(this, ClaudeNarration.RemoteControlFailedAtStart());
         }
+
+        UpdateRemoteControlStatus();
     }
 
-    private void StopRemoteControl()
+    // At the end of a session the server gets the same graceful stop as an
+    // interrupted task, so a remote session can wind down; when Vigie closes
+    // there is no time for that, and its tree is ended at once.
+    private void StopRemoteControl(bool graceful)
     {
         _remoteControlRestartAt = null;
         if (_remoteControl is { HasExited: false } server)
         {
-            server.Kill();
+            if (graceful)
+            {
+                _ = server.InterruptAsync(InterruptGrace);
+            }
+            else
+            {
+                server.Kill();
+            }
+
             _services.Log.Info(ClaudeNarration.RemoteControlStopped());
         }
+
+        UpdateRemoteControlStatus();
     }
 
     [RelayCommand]
@@ -1006,7 +1065,7 @@ public sealed partial class MainViewModel : ObservableObject
     private void OnSessionStopped(StopResult result)
     {
         CancelResume(ResumeCancellation.SessionEnded);
-        StopRemoteControl();
+        StopRemoteControl(graceful: true);
         _services.ActivityLock.Stop();
         _shortcut?.Unregister();
         ShowBatteryWarning = false;
@@ -1206,6 +1265,7 @@ public sealed partial class MainViewModel : ObservableObject
         ActivityResponse = settings.ActivityResponse;
         ActivityShortcut = settings.ActivityShortcut;
         ResumeAfterUsageLimit = settings.ResumeAfterUsageLimit;
+        ProjectFolder = settings.ClaudeFolder ?? string.Empty;
     }
 
     private UserSettings CurrentSettings() => new()
@@ -1225,6 +1285,7 @@ public sealed partial class MainViewModel : ObservableObject
         ActivityResponse = ActivityResponse,
         ActivityShortcut = ActivityShortcut,
         ResumeAfterUsageLimit = ResumeAfterUsageLimit,
+        ClaudeFolder = string.IsNullOrWhiteSpace(ProjectFolder) ? null : ProjectFolder,
     };
 
     private void SaveSettings()

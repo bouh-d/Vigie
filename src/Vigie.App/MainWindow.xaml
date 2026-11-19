@@ -65,6 +65,8 @@
           <TextBlock Text="{Binding SessionStateText}" FontSize="18" TextWrapping="Wrap"
                      AutomationProperties.AutomationId="SessionState" />
         </DockPanel>
+        <TextBlock Text="{Binding RemoteControlStatusText}" Style="{StaticResource Hint}" Margin="22,0,0,4"
+                   Visibility="{Binding ShowRemoteControlStatus, Converter={StaticResource BoolVis}}" AutomationProperties.AutomationId="RemoteControlStatus" />
         <ProgressBar Style="{StaticResource SessionProgress}" Value="{Binding Progress, Mode=OneWay}" Margin="0,2,0,6"
                      Visibility="{Binding IsSessionRunning, Converter={StaticResource BoolVis}}"
                      AutomationProperties.Name="{Binding SessionStateText}" />
