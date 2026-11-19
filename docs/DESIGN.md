@@ -200,6 +200,27 @@ resembles a keylogger:
   disarmed until the shortcut arms it again, so the user is not locked out a
   second time while reading the screen after signing in.
 
+## Home lab
+
+The home lab is a session with no end time (`SessionDurationKind.UntilStopped`)
+that also keeps Claude Code's Remote Control server running, so a session on
+claude.ai or in the Claude app can work on the PC at any time.
+
+- The server is `claude remote-control`, started in the Claude Code folder in
+  its own console, like an interactive session, with the chosen permission
+  mode. The mode that turns permission checks off is refused: it has to be
+  confirmed at every launch, and a restart has no one to confirm it.
+- A first start that ends within 20 seconds is a start failure (a folder Claude
+  Code does not trust yet, or no signed-in account): it is reported, not
+  retried. A later exit is retried after 30 seconds, doubling with each restart
+  in the same hour, up to 10 minutes, so an internet outage costs a few
+  attempts, not a loop.
+- Ending the session, or closing Vigie, ends the server's process tree.
+- With no end time there is no countdown or progress bar, and the resume after
+  the usage limit treats the session as long enough for any wait.
+- Vigie has no autostart, so a restart of Windows ends the home lab, as it ends
+  any session.
+
 ## Resuming after the usage limit
 
 Claude Code reports the account's usage limit in its stream-json output. A

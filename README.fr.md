@@ -115,6 +115,29 @@ le champ du raccourci dans **Advanced settings** et tapez la nouvelle
 combinaison : deux touches parmi Ctrl, Alt et Maj (Shift), plus une lettre, un
 chiffre ou F1 à F24.
 
+### Home lab
+
+Choisissez la durée **Home lab: until I stop it, with Remote Control** pour
+faire du portable une machine joignable de partout. Le PC reste éveillé jusqu'à
+ce que vous appuyiez sur **Stop**, sans limite de temps, et Vigie lance le
+Remote Control de Claude Code (`claude remote-control`) dans le dossier choisi
+dans **Claude Code**. Depuis claude.ai/code ou l'app Claude, vous pouvez alors
+ouvrir une session sur ce PC à tout moment et y faire travailler Claude.
+
+- Toute personne connectée à votre compte Claude peut ainsi travailler sur ce
+  PC.
+- Lancez `claude` une fois dans le dossier pour que Claude Code lui fasse
+  confiance, et restez connecté. Si le Remote Control s'arrête juste après son
+  lancement, Vigie l'écrit dans le journal au lieu de réessayer.
+- S'il s'arrête plus tard, Vigie le relance, après 30 secondes puis des
+  attentes plus longues, jusqu'à 10 minutes. Arrêter le home lab l'arrête.
+- Il utilise le mode de permissions choisi dans **Claude Code**, jamais celui
+  qui désactive les vérifications.
+- Laissez le PC branché. Le home lab s'arrête quand même au seuil de batterie
+  (décochable), à un redémarrage de Windows Update et au redémarrage du PC :
+  Vigie ne démarre pas avec Windows. Le Remote Control a aussi besoin
+  d'internet.
+
 ### Reprise après la limite d'utilisation
 
 Quand une tâche autonome lancée depuis Vigie s'arrête parce que votre limite

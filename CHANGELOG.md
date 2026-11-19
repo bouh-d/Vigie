@@ -8,6 +8,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- A home lab mode: the PC stays awake until it is stopped, and Vigie keeps
+  Claude Code's Remote Control running in the Claude Code folder, restarting it
+  when it stops, so a session on claude.ai or in the Claude app can work on the
+  PC at any time.
 - **Stop below** in the advanced settings can be unticked to use the battery to
   the end: the session then runs until Windows' own critical-battery action,
   which the log names when the session starts.

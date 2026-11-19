@@ -110,6 +110,27 @@ leave. Type it before touching anything else. To change it, click the shortcut
 field under **Advanced settings** and press the new keys: two of Ctrl, Alt and
 Shift, plus a letter, a digit or F1 to F24.
 
+### Home lab
+
+Choose **Home lab: until I stop it, with Remote Control** as the duration to
+turn the laptop into a machine you can reach from anywhere. The PC stays awake
+until you press **Stop**, with no time limit, and Vigie runs Claude Code's
+Remote Control (`claude remote-control`) in the folder set under
+**Claude Code**. From claude.ai/code or the Claude app you can then open a
+session on this PC at any time and let Claude work on it.
+
+- Anyone signed in to your Claude account can work on this PC this way.
+- Run `claude` in the folder once first, so Claude Code trusts it, and stay
+  signed in. If Remote Control stops right after starting, Vigie says so in the
+  log rather than retrying.
+- If it stops later, Vigie starts it again, after 30 seconds and then longer
+  waits, up to 10 minutes. Stopping the home lab stops it.
+- It uses the permission mode chosen under **Claude Code**, never the mode
+  that turns permission checks off.
+- Leave the PC plugged in. The home lab still ends at the battery stop (which
+  can be unticked), at a Windows Update restart, and when the PC restarts:
+  Vigie does not start with Windows. Remote Control also needs the internet.
+
 ### Resume after the usage limit
 
 When an autonomous task started from Vigie stops because your Claude usage
